@@ -1,4 +1,7 @@
 import numpy as np
+import h5py
+import torch
+from torch.utils.data import Dataset
 
 def convert_to_rgb(img, is_grayscale=False):
     """Given an image, make sure it has 3 channels and that it is between 0 and 1.
@@ -18,3 +21,18 @@ def convert_to_rgb(img, is_grayscale=False):
         imgp = imgp * 127.5 + 127.5
         imgp /= 255.
     return np.clip(imgp.transpose((1, 2, 0)), 0, 1)
+
+class H5Dataset(Dataset):
+    def __init__(self, h5_file, key):
+        f = h5py.File(h5_file, 'r')
+        self.f = f
+        self.key = key
+        
+    def __getitem__(self, index):
+        img = self.f[self.key][index]
+        img = ((img / 255.) - 0.5) / 0.5
+        img = img.swapaxes(2, 1).swapaxes(1, 0)
+        return torch.from_numpy(img).float()
+
+    def __len__(self):
+        return self.f[self.key].shape[0]

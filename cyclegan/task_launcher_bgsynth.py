@@ -7,28 +7,14 @@ from skimage.transform import rescale
 from skimage.io import imsave
 from torch.utils.data import Dataset
 import h5py
-from util import convert_to_rgb
+from util import (convert_to_rgb,
+                  H5Dataset)
 
 from importlib import import_module
 
 VALID_DATASETS = ['depthnet_bg_vs_frontal',
                   'gt_vs_frontal_gt',
                   'depthnet_gt_vs_frontal']
-
-class H5Dataset(Dataset):
-    def __init__(self, h5_file, key):
-        f = h5py.File(h5_file, 'r')
-        self.f = f
-        self.key = key
-        
-    def __getitem__(self, index):
-        img = self.f[self.key][index]
-        img = ((img / 255.) - 0.5) / 0.5
-        img = img.swapaxes(2, 1).swapaxes(1, 0)
-        return torch.from_numpy(img).float()
-
-    def __len__(self):
-        return self.f[self.key].shape[0]
 
 #####################
 # UTILITY FUNCTIONS #

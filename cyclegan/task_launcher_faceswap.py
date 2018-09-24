@@ -4,74 +4,28 @@ import os
 import pickle
 import argparse
 from torch.utils.data import DataLoader
-from christorch.i2i.cyclegan import CycleGAN
 from torch.utils.data.dataset import TensorDataset
+from i2i.cyclegan import CycleGAN
+from util import (convert_to_rgb,
+                  H5Dataset)
 from torchvision import transforms
 from skimage.io import imsave, imread
 from skimage.transform import rescale, resize
 
-def convert_to_rgb(img, is_grayscale=False):
-    """Given an image, make sure it has 3 channels and that it is between 0 and 1.
-       Acknowledgement: http://github.com/costapt/vess2ret
-    """
-    if len(img.shape) != 3:
-        raise Exception("""Image must have 3 dimensions (channels x height x width). """
-                        """Given {0}""".format(len(img.shape)))
-    img_ch, _, _ = img.shape
-    if img_ch != 3 and img_ch != 1:
-        raise Exception("""Unsupported number of channels. """
-                        """Must be 1 or 3, given {0}.""".format(img_ch))
-    imgp = img
-    if img_ch == 1:
-        imgp = np.repeat(img, 3, axis=0)
-    if not is_grayscale:
-        imgp = imgp * 127.5 + 127.5
-        imgp /= 255.
-    return np.clip(imgp.transpose((1, 2, 0)), 0, 1)
-
-def get_face_swap_iterators(root,
-                            batch_size, quick_run=False):
-    
-    if not quick_run:
-        pkl_file = "%s/VGG_celebA.pickle" % root
-        pkl_file_faceswap = "%s/multiwarped_images_warped.pickle" % root
-        with open(pkl_file_faceswap, 'rb') as f:
-            dataset = pickle.load(f, encoding='latin1')
-            X = dataset['buf']
-            X_train = X[0:int(X.shape[0]*0.95)]
-            X_valid = X[int(X.shape[0]*0.95)::]
-        with open(pkl_file, 'rb') as f:
-            dataset = pickle.load(f, encoding='latin1')
-            Y = dataset['src_GT'][:, :, :, ::-1]
-            Y_train = Y[0:int(Y.shape[0]*0.95)]
-            Y_valid = Y[int(Y.shape[0]*0.95)::]
-        X_train = ((X_train.swapaxes(3, 2).swapaxes(2, 1) / 255.) - 0.5) / 0.5
-        Y_train = ((Y_train.swapaxes(3, 2).swapaxes(2, 1) / 255.) - 0.5) / 0.5
-        X_valid = ((X_valid.swapaxes(3, 2).swapaxes(2, 1) / 255.) - 0.5) / 0.5
-        Y_valid = ((Y_valid.swapaxes(3, 2).swapaxes(2, 1) / 255.) - 0.5) / 0.5
-    else:
-        # Load a sample file which is a small subset of the PKL_SINA
-        # and PKL_FACESWAP files.
-        dat = np.load("%s/get_face_swap_iterators_sample.npz" % root)
-        X_train = dat['X_train']
-        Y_train = dat['Y_train']
-        X_valid = dat['X_valid']
-        Y_valid = dat['Y_valid']
-    dd_train_a = TensorDataset(torch.from_numpy(X_train).float())
-    dd_train_b = TensorDataset(torch.from_numpy(Y_train).float())
-    dd_valid_a = TensorDataset(torch.from_numpy(X_valid).float())
-    dd_valid_b = TensorDataset(torch.from_numpy(Y_valid).float())
-    loader_train_a = DataLoader(dd_train_a,
-                                batch_size=batch_size, shuffle=True)
-    loader_train_b = DataLoader(dd_train_b,
-                                batch_size=batch_size, shuffle=True)
-    loader_valid_a = DataLoader(dd_valid_a,
-                                batch_size=batch_size, shuffle=True)
-    loader_valid_b = DataLoader(dd_valid_b,
-                                batch_size=batch_size, shuffle=True)
+def get_face_swap_iterators(bs):
+    """DepthNet + GT <-> frontal GT faces"""
+    filename = "faceswap.h5"
+    dd_train_a = H5Dataset('data/%s' % filename, 'X_train')
+    dd_train_b = H5Dataset('data/%s' % filename, 'Y_train')
+    dd_valid_a = H5Dataset('data/%s' % filename, 'X_valid')
+    dd_valid_b = H5Dataset('data/%s' % filename, 'Y_valid')
+    loader_train_a = DataLoader(dd_train_a, batch_size=bs, shuffle=True)
+    loader_train_b = DataLoader(dd_train_b, batch_size=bs, shuffle=True)
+    loader_valid_a = DataLoader(dd_valid_a, batch_size=bs, shuffle=True)
+    loader_valid_b = DataLoader(dd_valid_b, batch_size=bs, shuffle=True)
     return loader_train_a, loader_train_b, loader_valid_a, loader_valid_b
 
-def cg_dump_vis(out_folder, scale_factor=1.):
+def image_dump_handler(out_folder, scale_factor=1.):
     def _fn(losses, inputs, outputs, kwargs):
         if kwargs['iter'] != 1:
             return
@@ -99,10 +53,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="")
     parser.add_argument('--name', type=str,
                         default="my_experiment")
-    parser.add_argument('--data_dir', type=str,
-                        default="/data/milatmp1/beckhamc/tmp_data/joel_faces/")
     parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--quick_dataset', action='store_true')
     parser.add_argument('--mode', choices=['train', 'test', 'vis'],
                         default='train')
     parser.add_argument('--lr', type=float, default=2e-4)
@@ -121,30 +72,26 @@ args = parse_args()
 
 if __name__ == '__main__':
 
-    from architectures.networks import define_G
-    from architectures.image2image_old import Discriminator
     from torchvision.utils import save_image
+
+    from architectures import block9_a3b3
+
+    gen_atob, disc_a, gen_btoa, disc_b = block9_a3b3.get_network()
 
     print("Loading iterators...")
     it_train_a, it_train_b, it_valid_a, it_valid_b = \
-        get_face_swap_iterators(args.data_dir,
-                                args.batch_size,
-                                quick_run=args.quick_dataset)
+        get_face_swap_iterators(args.batch_size)
 
     print("Loading CycleGAN...")
     name = args.name
     net = CycleGAN(
-        gen_atob_fn=define_G(
-            **{'input_nc': 3, 'ngf': 64, 'output_nc': 3, 'which_model_netG': 'resnet_9blocks', 'norm': 'instance'}),
-        disc_a_fn=Discriminator(
-            **{'input_dim': 3, 'num_filter': 64, 'output_dim': 1}),
-        gen_btoa_fn=define_G(
-            **{'input_nc': 3, 'ngf': 64, 'output_nc': 3, 'which_model_netG': 'resnet_9blocks', 'norm': 'instance'}),
-        disc_b_fn=Discriminator(
-            **{'input_dim': 3, 'num_filter': 64, 'output_dim': 1}),
+        gen_atob_fn=gen_atob,
+        disc_a_fn=disc_a,
+        gen_btoa_fn=gen_btoa,
+        disc_b_fn=disc_b,
         opt_d_args={'lr': args.lr, 'betas': (args.beta1, args.beta2)},
         opt_g_args={'lr': args.lr, 'betas': (args.beta1, args.beta2)},
-        handlers=[cg_dump_vis("%s/%s" % (args.save_path, name))],
+        handlers=[image_dump_handler("%s/%s" % (args.save_path, name))],
         use_cuda=False if args.cpu else True
     )
     if args.resume is not None:
