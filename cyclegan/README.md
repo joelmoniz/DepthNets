@@ -21,43 +21,37 @@ First download the .h5 files from here and put them the folder called `data/`:
 
 ### Cleaning up face swaps
 
-One of the applications of CycleGAN was using it to clean up the operation which warps one face onto another. This involves blending the pasted face into the face that it was pasted onto, e.g. from:
+One of the applications of CycleGAN was using it to clean up the operation which warps one face onto another. This involves using CycleGAN to learn a mapping between two domains: the domain of faces which have been pasted onto other faces (DepthNet faces) and the domain of ground truth faces. When this is trained, the mapping `depthnet -> real face` is the one we are interested in utilising.
 
-<!-- ![image](https://user-images.githubusercontent.com/2417792/45967635-9d81e680-bffc-11e8-8317-c1f83bae4c3e.png)
-![image](https://user-images.githubusercontent.com/2417792/45967641-9fe44080-bffc-11e8-911e-c17695573fed.png)
-![image](https://user-images.githubusercontent.com/2417792/45967644-a1ae0400-bffc-11e8-8048-00fb69d389f2.png)
-![image](https://user-images.githubusercontent.com/2417792/45967646-a4105e00-bffc-11e8-9912-22b482b2c0f8.png) -->
+![image](https://user-images.githubusercontent.com/2417792/46300240-34a4ec00-c571-11e8-8051-714e1a9baeca.png)
 
-![img1](https://user-images.githubusercontent.com/2417792/45315224-d05ab380-b501-11e8-9ec5-98aeb770a9e4.png)
+Some example images are shown below. (From left to right: source face, target face, DepthNet face, cleanup of DepthNet face)
 
-to:
-
-![img2](https://user-images.githubusercontent.com/2417792/45315235-d81a5800-b501-11e8-9fd8-3f81126d518f.png)
-
-This means that CycleGAN tries to map between two domains: the domain of pasted faces (first image) and the domain of (ground truth) CelebA images.
+![image](https://user-images.githubusercontent.com/2417792/46299419-4a191680-c56f-11e8-876c-f104950770ad.png) ![image](https://user-images.githubusercontent.com/2417792/46299425-4eddca80-c56f-11e8-8051-eb9e7d610273.png) ![image](https://user-images.githubusercontent.com/2417792/46299427-50a78e00-c56f-11e8-873c-85ec2a96ac58.png) ![image](https://user-images.githubusercontent.com/2417792/46299431-5309e800-c56f-11e8-8a3d-8a707fa30e67.png)
+![image](https://user-images.githubusercontent.com/2417792/46299443-5604d880-c56f-11e8-8ed5-5abf6a21c33a.png) ![image](https://user-images.githubusercontent.com/2417792/46299448-58673280-c56f-11e8-9029-929f68cbdfef.png) ![image](https://user-images.githubusercontent.com/2417792/46299452-5ac98c80-c56f-11e8-821e-8c7df99e09bd.png) ![image](https://user-images.githubusercontent.com/2417792/46299454-5c935000-c56f-11e8-8097-a613b8af2bda.png)
 
 To run this experiment, simply run:
 
 ```
-python task_launcher_faceswap.py --name=my_experiment_name
+python task_launcher_faceswap.py \
+--name=experiment_faceswap \
+--batch_size=16 \
+--epochs=1000
 ```
 
 ### Background synthesis after face warp
 
-Since DepthNet only warps the region corresponding to the face, it would be useful to be able to resynthesize the outside region such as the background and hair.
+Since DepthNet only warps the region corresponding to the face, it would be useful to be able to resynthesize the outside region such as the background and hair. In this experiment, CycleGAN maps from the domain consisting of DepthNet frontalised face and the background of the original face to the domain of ground truth (CelebA) images:
+
+![image](https://user-images.githubusercontent.com/2417792/46300959-ff999900-c572-11e8-847f-bdf7fa5025ee.png)
+
+Some examples are shown below. (From left to right: source image, source image + keypts, frontalised face with DepthNet, CycleGAN combining (3) and background of (1))
 
 ![image](https://user-images.githubusercontent.com/2417792/45967494-32381480-bffc-11e8-8002-d843ce926670.png)
 ![image](https://user-images.githubusercontent.com/2417792/45967500-349a6e80-bffc-11e8-9f07-bc4d9c2529a3.png)
 ![image](https://user-images.githubusercontent.com/2417792/45967504-36643200-bffc-11e8-8f61-6aebb649ffae.png)
 ![image](https://user-images.githubusercontent.com/2417792/45967506-382df580-bffc-11e8-8964-e1eb7ae30ace.png)
 
-From left to right:
-* (1) source image
-* (2) source image + keypts
-* (3) warped face with DepthNet
-* (4) CycleGAN combining (3) and background of (1)
-
-In this experiment, CycleGAN maps from the domain consisting of DepthNet warped face (col 3) and the background of the original face (col 1) to the domain of ground truth (CelebA) images:
 
 ```
 python task_launcher_bgsynth.py \
@@ -65,7 +59,7 @@ python task_launcher_bgsynth.py \
 --dataset=depthnet_bg_vs_frontal \
 --batch_size=16 \
 --network=architectures/block9_a6b3.py \
---epochs=1000
+--epochs=500
 ```
 
 ## Acknowledgements
