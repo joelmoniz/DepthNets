@@ -9,7 +9,7 @@ To quickly get setup, we can create a new Conda environment and install the requ
 ```
 conda create -n depthnet python=3.6
 conda install pytorch torchvision -c pytorch
-pip install tqdm
+pip install tqdm h5py scikit-image
 ```
 
 ## How to run
