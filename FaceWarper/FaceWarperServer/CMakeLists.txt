@@ -1,5 +1,9 @@
 cmake_minimum_required (VERSION 3.9)
 project(FaceWarperServer)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 include_directories(source)
 file(GLOB SOURCES "source/*.cpp" "source/*.h")
 add_executable(FaceWarperServer ${SOURCES})
