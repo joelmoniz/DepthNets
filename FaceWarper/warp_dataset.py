@@ -70,10 +70,6 @@ def extract_identity(img_path):
     fileID = os.path.splitext(fileID)[0]
     return (person, fileID)
 
-def parse_pair_line(line):
-    img_dst, img_src = line.split()
-    return (img_dst, img_src)
-
 def warp_all(server, dataset, results_destination, options):
     current_person = ""
     processed_count = 0
@@ -84,7 +80,7 @@ def warp_all(server, dataset, results_destination, options):
                 continue
 
             file_index = i + 1
-            img_dst, img_src = parse_pair_line(line)
+            img_src = line
             person, fileID = extract_identity(img_src)
 
             image = dataset.image_filepath(person, fileID)
