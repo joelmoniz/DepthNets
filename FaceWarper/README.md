@@ -25,10 +25,14 @@ The Python program "warp_dataset.py" launches FaceWarperServer and sequentially 
 
 ## Warp command format
 
-Each warping command is a space delimited line containing the following information, in order:
+This section presents the command format used to send warp commands to FaceWarperServer. These are implementation details that are not necessary to understand if you just want to use the supplied FaceWarperClient package or the supplied execution script 'warp_dataset.py'. It is useful is you want to implement a new client.
 
-1. source texture file path
-2. keypoint file path
-3. depth file path
+The FaceWarperServer listens on the standard input for warping commands. Each warping command is a space delimited line containing the following information, in order:
+
+1. source image file path
+2. source 2D keypoint file path
+3. source keypoint depth file path
 4. affine transform file path
-5. destination image file path
+5. output image path
+
+Once the server has finished processing the command, it writes "ready" on a new line on the standard output to notify the client that it is ready to receive a new warping command.
