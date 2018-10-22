@@ -37,6 +37,8 @@ python task_launcher_faceswap.py \
 --epochs=1000
 ```
 
+You can find the pre-trained checkpoint for this [here](https://mega.nz/#!kPYBSSpR!AYQJzMPLtX98bsgzSCPNWcNYdEiuYBV5-ZAOCK9_Wyw) (add `--resume=<path_to_pkl>` to the above script).
+
 ### Background synthesis after face warp
 
 Since DepthNet only warps the region corresponding to the face, it would be useful to be able to resynthesize the outside region such as the background and hair. In this experiment, CycleGAN maps from the domain consisting of DepthNet frontalised face and the background of the original face to the domain of ground truth (CelebA) images:
