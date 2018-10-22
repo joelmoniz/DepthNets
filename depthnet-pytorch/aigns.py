@@ -421,38 +421,3 @@ class AIGN():
         g, d = torch.load(filename, map_location=map_location)
         self.g.load_state_dict(g)
         self.d.load_state_dict(d)
-
-if __name__ == '__main__':
-    from architectures import generator, discriminator, shared
-    g = generator.get_network()
-    d = discriminator.get_network()
-    xfake = Variable(torch.randn((2,66,128,128)))
-    #print(g)
-    #print(d)
-    dd = g(xfake)
-    #for key in dd:
-    #    print(key, " ", dd[key].size())
-    x_3d = shared.params_to_3d(dd)
-    print(x_3d.shape)
-    x_2d = shared.project_3d_to_2d(dd, x_3d)
-    print(x_2d.shape)
-
-    #######
-    from iterators import iterator
-    loader = iterator.get_iterator(32)
-    #yy,zz = iter(loader).next()
-    
-    kpg = AIGN(g_fn=g,
-                      d_fn=d,
-                      handlers=[save_handler],
-                      lamb=100.)
-    #yy,zz = kpg.prepare_batch(yy,zz)
-
-    #print(kpg.train_on_instance(xx,yy,zz))
-    #print(kpg.eval_on_instance(xx,yy,zz))
-
-    kpg.train(itr=loader, epochs=100, model_dir=None, result_dir=None)
-    
-    import pdb
-    pdb.set_trace()
-    
