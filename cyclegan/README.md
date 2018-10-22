@@ -62,6 +62,8 @@ python task_launcher_bgsynth.py \
 --epochs=500
 ```
 
+You can find the pre-trained checkpoint for this [here](https://mega.nz/#!NL5EyYaL!tw_TS_F7zgOeRCxj3acBrazTPuvLDRx3igN1jA1Sdgg) (add `--resume=<path_to_pkl>` to the above script).
+
 ## Acknowledgements
 
 * Some code has been used from the following repositories:
