@@ -4,8 +4,9 @@ import os
 import numpy as np
 from skimage.io import imread, imsave
 
-root_dir = "/data/milatmp1/beckhamc/tmp_data/3dfaw"
+root_dir = os.environ['DIR_3DFAW']
 
+'''
 def test():
     img_downsized, y_keypts, z_keypts, x_keypts = get_data_from_id(
         root=root_dir, id_=ids[0])
@@ -20,6 +21,7 @@ def test():
         fm += x_keypts[i]
     imsave(arr=fm, fname="tmp/fm.png")
     print(x_keypts.sum())
+'''
 
 def prepare_train():
     ids = glob.glob("%s/train_img/*.jpg" % root_dir)
@@ -76,7 +78,7 @@ def prepare_test():
              ids=ids,
              orientations=orientations)
     
-
-#prepare_train()
-prepare_valid()
-prepare_test()
+if __name__ == '___main__':
+    prepare_train()
+    prepare_valid()
+    prepare_test()
