@@ -6,11 +6,17 @@ FaceWarperServer is a C++11 application that applies a 3D affine transform to a 
 The server supports Linux and Windows.
 
 ### Dependencies
-
+To build FaceWarperServer, the following libraries are required :
 - GLEW
 - freeglut
 - GLM
 - libpng (requires zlib)
+
+On a Debian/Ubuntu Linux distribution, these dependencies can be installed with the following packages :
+- libglew-dev
+- freeglut3-dev
+- libglm-dev
+- libpng-dev
 
 ### Build
 A CMake CMakeLists.txt is provided to build FaceWarperServer. To build on Linux, the helper shell script "build_linux.sh" is provided. To build on Windows, the helper Batch script "build_windows.bat" is provided. It supposes that the required libraries are located in "FaceWarperServer\lib" directory.
