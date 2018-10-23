@@ -1,5 +1,10 @@
 # FaceWarper
 
+FaceWarper is a program that applies a 3D affine transform to an image and saves the result to disk. It uses a client-server architecture. The server, FaceWarperServer, is programmed in C++11. A reference Python implementation of a client, FaceWarperClient, is provided. Finaly, the Python script "warp_dataset.py" is provided to apply on a full dataset the 3D affine transforms infered using DepthNet.
+
+## Usage with DepthNet
+You first need to build FaceWarperServer in order to use it. Detailed instructions on how to build it is provided in a section below.
+
 ## FaceWarperServer
 FaceWarperServer is a C++11 application that applies a 3D affine transform to a mesh. It acts as a server that listens on the standard input. A visualization window is shown on the desktop. The image in this window is scaled to ease visualization, but the processing is done at the source texture resolution.
 
