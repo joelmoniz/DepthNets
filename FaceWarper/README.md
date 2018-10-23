@@ -23,6 +23,11 @@ A CMake CMakeLists.txt is provided to build FaceWarperServer. To build on Linux,
 
 If you have problems building with CMake on Windows, a Visual Studio 2017 project is also provided in the "windows_build" directory.
 
+If one of the dependencies can't be found by CMake, use the "-DCMAKE_PREFIX_PATH=" option to tell CMake where to find them. For example, if CMake can't find GLEW :
+```
+cmake -DCMAKE_PREFIX_PATH="/path/to/glew/glew-2.1.0/build/" ..
+```
+
 ## warp_dataset.py
 The Python program "warp_dataset.py" launches FaceWarperServer and sequentially sends each face in the dataset to be warped.
 
