@@ -7,6 +7,10 @@ You first need to build FaceWarperServer in order to use it. Detailed instructio
 
 ![FaceWarper usage overview](https://user-images.githubusercontent.com/627828/47393012-5450af80-d6ec-11e8-9fdf-58b37eb8749a.png)
 
+```
+python warp_dataset.py --results "/path/to/results" --server_exec "./FaceWarperServer/build/FaceWarperServer" "/path/to/dataset"
+```
+
 ## FaceWarperServer
 FaceWarperServer is a C++11 application that applies a 3D affine transform to a mesh. It acts as a server that listens on the standard input. A visualization window is shown on the desktop. The image in this window is scaled to ease visualization, but the processing is done at the source texture resolution.
 
