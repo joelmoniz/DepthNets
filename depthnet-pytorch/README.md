@@ -1,5 +1,16 @@
 # DepthNets (in PyTorch)
 
+DepthNet estimating both depth and affine params:
+<p align="center">
+  <img src="figures/DepthNet_diagram_with_Kpt.jpg" width="600"/>
+</p>
+
+DepthNet estimating only depth:
+<p align="center">
+  <img src="figures/DepthNet_diagram_only_depth.jpg" width="600"/>
+</p>
+
+
 We train DepthNet on unpaired faces belonging to different identities and compare with other models that estimate depth.
 We use the 3DFAW dataset that contains 66 3D keypoints to facilitate comparing with ground truth (GT) depth.  It provides
 13,671 train and 4,500 valid images. We extract from the valid set, 75 frontal, left and right looking faces yielding a total
