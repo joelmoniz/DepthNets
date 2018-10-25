@@ -1,0 +1,88 @@
+name: depthnet
+channels:
+- psi4
+- pytorch
+- defaults
+dependencies:
+- blas=1.0=mkl
+- ca-certificates=2018.03.07=0
+- certifi=2018.8.24=py36_1
+- cffi=1.11.5=py36he75722e_1
+- cloog=0.18.0=0
+- cloudpickle=0.6.1=py36_0
+- cycler=0.10.0=py36_0
+- dask-core=0.19.4=py36_0
+- dbus=1.13.2=h714fa37_1
+- decorator=4.3.0=py36_0
+- expat=2.2.6=he6710b0_0
+- fontconfig=2.13.0=h9420a91_0
+- freetype=2.9.1=h8a8886c_1
+- glib=2.56.2=hd408876_0
+- gmp=6.1.2=h6c8ec71_1
+- gst-plugins-base=1.14.0=hbbd80ab_1
+- gstreamer=1.14.0=hb453b48_1
+- icu=58.2=h9c2bf20_1
+- imageio=2.4.1=py36_0
+- intel-openmp=2019.0=118
+- isl=0.12.2=0
+- jpeg=9b=h024ee3a_2
+- kiwisolver=1.0.1=py36hf484d3e_0
+- libedit=3.1.20170329=h6b74fdf_2
+- libffi=3.2.1=hd88cf55_4
+- libgcc-ng=8.2.0=hdf63c60_1
+- libgfortran-ng=7.3.0=hdf63c60_0
+- libpng=1.6.34=hb9fc6fc_0
+- libstdcxx-ng=8.2.0=hdf63c60_1
+- libtiff=4.0.9=he85c1e1_2
+- libuuid=1.0.3=h1bed415_2
+- libxcb=1.13=h1bed415_1
+- libxml2=2.9.8=h26e45fe_1
+- matplotlib=3.0.0=py36h5429711_0
+- mkl=2019.0=118
+- mkl_fft=1.0.4=py36h4414c95_1
+- mkl_random=1.0.1=py36h4414c95_1
+- mpc=1.1.0=h10f8cd9_1
+- mpfr=4.0.1=hdf1c602_3
+- ncurses=6.1=hf484d3e_0
+- networkx=2.2=py36_1
+- ninja=1.8.2=py36h6bb024c_1
+- numpy=1.15.1=py36h1d66e8a_0
+- numpy-base=1.15.1=py36h81de0dd_0
+- olefile=0.46=py36_0
+- openssl=1.0.2p=h14c3975_0
+- pcre=8.42=h439df22_0
+- pillow=5.2.0=py36heded4f4_0
+- pip=10.0.1=py36_0
+- pycparser=2.18=py36_1
+- pyparsing=2.2.2=py36_0
+- pyqt=5.9.2=py36h05f1152_2
+- python=3.6.6=hc3d631a_0
+- python-dateutil=2.7.3=py36_0
+- pytz=2018.5=py36_0
+- pywavelets=1.0.1=py36hdd07704_0
+- qt=5.9.6=h8703b6f_2
+- readline=7.0=h7b6447c_5
+- scikit-image=0.14.0=py36hf484d3e_1
+- scipy=1.1.0=py36hfa4b5c9_1
+- setuptools=40.2.0=py36_0
+- sip=4.19.8=py36hf484d3e_0
+- six=1.11.0=py36_1
+- sqlite=3.24.0=h84994c4_0
+- tk=8.6.8=hbc83047_0
+- toolz=0.9.0=py36_0
+- tornado=5.1.1=py36h7b6447c_0
+- wheel=0.31.1=py36_0
+- xz=5.2.4=h14c3975_4
+- zlib=1.2.11=ha838bed_2
+- gcc-5=5.2.0=1
+- pytorch=0.4.1=py36_py35_py27__9.0.176_7.1.2_2
+- torchvision=0.2.1=py36_1
+- pip:
+  - dask==0.19.4
+  - mkl-fft==1.0.4
+  - mkl-random==1.0.1
+  - tifffile==0.13.5
+  - torch==0.4.1.post2
+  - tqdm==4.26.0
+prefix: /u/beckhamc/.conda/envs/depthnet
+
