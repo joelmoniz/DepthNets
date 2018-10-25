@@ -1,14 +1,15 @@
 # DepthNets (in PyTorch)
 
-DepthNet estimating both depth and affine params:
+DepthNet with pseudoinverse formulation that estimates only depth:
+<p align="center">
+  <img src="figures/DepthNet_diagram_only_depth.jpg" width="600"/>
+</p>
+
+DepthNet estimating both depth and affine params `m`:
 <p align="center">
   <img src="figures/DepthNet_diagram_with_Kpt.jpg" width="600"/>
 </p>
 
-DepthNet estimating only depth:
-<p align="center">
-  <img src="figures/DepthNet_diagram_only_depth.jpg" width="600"/>
-</p>
 
 
 We train DepthNet on unpaired faces belonging to different identities and compare with other models that estimate depth.
@@ -56,10 +57,10 @@ Then, `cp env.sh.example env.sh`, modify `env.sh` to point to this 3DFAW directo
 
 ### Experiments
 
-* (1) `exps/exp1.lamb1.sd5.nogan.sigma0.05.sh`: this is the baseline experiment. This corresponds to the DepthNet pseudoinverse model.
-* (2) `exps/exp1.lamb1.sd5.nogan.learnm.sh`: the DepthNet model where `g()` also learns the `m`.
+* (1) `exps/exp1.lamb1.sd5.nogan.sigma0.05.sh`: this is the baseline experiment. This corresponds to the DepthNet pseudoinverse model that estimates only depth.
+* (2) `exps/exp1.lamb1.sd5.nogan.learnm.sh`: the DepthNet model where `g()` also learns the affine params `m`.
 * (3) `exps/exp1.lamb1.sd5.wgan.dnorm0.1.sigma0.05.sh`: (1) but GANified, with a conditional descriminator on the predicted depths.
-* (4) `exp1.lamb1.sd5.wgan.dnorm0.1.learnm.sh`: (3) but with learning `m`.
+* (4) `exp1.lamb1.sd5.wgan.dnorm0.1.learnm.sh`: (3) but with learning affine params `m`.
 
 Once trained, the results and diagnostic files will be located in `results/<experiment_name>`. Models can be reloaded with the `--resume=<path_to_checkpoint>` flag, but since this is set to `--resume=auto` in the script, whenever the experiment is run it will try to find the latest model checkpoint and load that instead. Pre-trained model checkpoints can be found [here](https://mega.nz/#F!FHoT0KIb!09aEueFerQ0zzuJvvN5FnA).
 
