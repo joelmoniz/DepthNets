@@ -12,10 +12,8 @@ conda env create -f=environment.yml -n depthnet
 
 ## How to run
 
-First download the .h5 files from here and put them the folder called `data/`:
-
-* Face swapping: [faceswap.h5](https://mega.nz/#!9S5zFDYY!4KVJpbQXhAaOrVRFsyAuItyXbZyi7CW--1zmLffXF0Q) (md5hash 99604c2617b7f3743389f1604b7cad5f)
-* Background synthesis: [depthnet_bg_vs_frontal.h5](https://mega.nz/#!RXpRFQSQ!xBKUuy0sxxKPacs8T6aCY9d2gkKnc2TJ5LUgB66NJ9g) (md5hash fbecb3c8aaa3f77ae71604f9a887730b)
+In order to get the data set up we will have to perform many steps. In the `data/` folder there are three folders: `celeba`, `celeba_faceswap`, and `vgg`, each containing their own `README.md` file on how to prepare the data. Before starting this
+process, one must compile the `FaceWarperServer` which is in the parent directory.
 
 ### Cleaning up face swaps
 
