@@ -38,6 +38,9 @@ On a Debian/Ubuntu Linux distribution, these dependencies can be installed with 
 - libglm-dev
 - libpng-dev
 
+### Pre-built binaries
+Pre-built binaries for Windows are provided in the "/FaceWarperServer/binaries/Windows" folder.
+
 ### Build
 A CMake CMakeLists.txt is provided to build FaceWarperServer. To build on Linux, the helper shell script "build_linux.sh" is provided. To build on Windows, the helper Batch script "build_windows.bat" is provided. It supposes that the required libraries are located in "FaceWarperServer\lib" directory.
 
