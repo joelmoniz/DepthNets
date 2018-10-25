@@ -61,7 +61,9 @@ Then, `cp env.sh.example env.sh`, modify `env.sh` to point to this 3DFAW directo
 * (3) `exps/exp1.lamb1.sd5.wgan.dnorm0.1.sigma0.05.sh`: (1) but GANified, with a conditional descriminator on the predicted depths.
 * (4) `exp1.lamb1.sd5.wgan.dnorm0.1.learnm.sh`: (3) but with learning `m`.
 
-Once trained, the results and diagnostic files will be located in `results/<experiment_name>`. Models can be reloaded with the `--resume=<path_to_checkpoint>` flag, but since this is set to `--resume=auto` in the script, whenever the experiment is run it will try to find the latest model checkpoint and load that instead. Pre-trained model checkpoints can be found [here](https://mega.nz/#F!FHoT0KIb!09aEueFerQ0zzuJvvN5FnA).
+Once trained, the results and diagnostic files will be located in `results/<experiment_name>`. Models can be reloaded with the `--resume=<path_to_checkpoint>` flag, but since this is set to `--resume=auto` in the script, whenever the experiment is run it will try to find the latest model checkpoint and load that instead. 
+
+(Pre-trained model checkpoints can be found [here](https://mega.nz/#F!sSwiRQCL!RSSbo-5z8FYT6cJWVKYdZQ). Download the `models` folder and put it in this directory.)
 
 ## Evaluation
 
