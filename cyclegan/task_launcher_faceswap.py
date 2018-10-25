@@ -4,7 +4,8 @@ import os
 import pickle
 import argparse
 from torch.utils.data import DataLoader
-from torch.utils.data.dataset import TensorDataset
+from torch.utils.data.dataset import (TensorDataset,
+                                      ConcatDataset)
 from i2i.cyclegan import CycleGAN
 from util import (convert_to_rgb,
                   H5Dataset)
@@ -14,15 +15,31 @@ from skimage.transform import rescale, resize
 
 def get_face_swap_iterators(bs):
     """DepthNet + GT <-> frontal GT faces"""
-    filename = "faceswap.h5"
-    dd_train_a = H5Dataset('data/%s' % filename, 'X_train')
-    dd_train_b = H5Dataset('data/%s' % filename, 'Y_train')
-    dd_valid_a = H5Dataset('data/%s' % filename, 'X_valid')
-    dd_valid_b = H5Dataset('data/%s' % filename, 'Y_valid')
-    loader_train_a = DataLoader(dd_train_a, batch_size=bs, shuffle=True)
-    loader_train_b = DataLoader(dd_train_b, batch_size=bs, shuffle=True)
-    loader_valid_a = DataLoader(dd_valid_a, batch_size=bs, shuffle=True)
-    loader_valid_b = DataLoader(dd_valid_b, batch_size=bs, shuffle=True)
+    filename_vgg = "data/vgg/vgg.h5"
+    filename_celeba = "data/celeba/celebA.h5"
+    filename_celeba_swap = "data/celeba_faceswap/celeba_faceswap.h5"
+    a_train = H5Dataset(filename_celeba_swap, 'imgs', train=True)
+    vgg_side_train = H5Dataset('%s' % filename_vgg, 'src_GT', train=True)
+    vgg_frontal_train = H5Dataset('%s' % filename_vgg, 'tg_GT', train=True)
+    celeba_side_train = H5Dataset('%s' % filename_celeba, 'src_GT', train=True)
+    celeba_frontal_train = H5Dataset('%s' % filename_celeba, 'tg_GT', train=True)
+    b_train = ConcatDataset((vgg_side_train,
+                             vgg_frontal_train,
+                             celeba_side_train,
+                             celeba_frontal_train))
+    a_valid = H5Dataset(filename_celeba_swap, 'imgs', train=False)
+    vgg_side_valid = H5Dataset('%s' % filename_vgg, 'src_GT', train=False)
+    vgg_frontal_valid = H5Dataset('%s' % filename_vgg, 'tg_GT', train=False)
+    celeba_side_valid = H5Dataset('%s' % filename_celeba, 'src_GT', train=False)
+    celeba_frontal_valid = H5Dataset('%s' % filename_celeba, 'tg_GT', train=False)
+    b_valid = ConcatDataset((vgg_side_valid,
+                             vgg_frontal_valid,
+                             celeba_side_valid,
+                             celeba_frontal_valid))
+    loader_train_a = DataLoader(a_train, batch_size=bs, shuffle=True)
+    loader_train_b = DataLoader(b_train, batch_size=bs, shuffle=True)
+    loader_valid_a = DataLoader(a_valid, batch_size=bs, shuffle=True)
+    loader_valid_b = DataLoader(b_valid, batch_size=bs, shuffle=True)
     return loader_train_a, loader_train_b, loader_valid_a, loader_valid_b
 
 def image_dump_handler(out_folder, scale_factor=1.):
@@ -56,6 +73,7 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--mode', choices=['train', 'test', 'vis'],
                         default='train')
+    parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--lr', type=float, default=2e-4)
     parser.add_argument('--beta1', type=float, default=0.5)
     parser.add_argument('--beta2', type=float, default=0.999)
@@ -95,6 +113,7 @@ if __name__ == '__main__':
         use_cuda=False if args.cpu else True
     )
     if args.resume is not None:
+        print("Loading checkpoint...")
         net.load(args.resume)
     if args.mode == "train":
         print("Training...")
@@ -103,7 +122,7 @@ if __name__ == '__main__':
             itr_b_train=it_train_b,
             itr_a_valid=it_valid_a,
             itr_b_valid=it_valid_b,
-            epochs=1000,
+            epochs=args.epochs,
             model_dir="%s/%s" % (args.model_save_path, name),
             result_dir="%s/%s" % (args.save_path, name),
             append=True if args.resume is not None else False
@@ -111,7 +130,7 @@ if __name__ == '__main__':
     elif args.mode == "vis":
         print("Converting A -> B...")
         net.g_atob.eval()
-        aa = iter(it_train_a).next()[0]
+        aa = iter(it_train_a).next()[0:1]
         bb = net.g_atob(aa)
         save_image(aa*0.5 + 0.5, "tmp/aa.png")
         save_image(bb*0.5 + 0.5, "tmp/bb.png")

@@ -23,16 +23,23 @@ def convert_to_rgb(img, is_grayscale=False):
     return np.clip(imgp.transpose((1, 2, 0)), 0, 1)
 
 class H5Dataset(Dataset):
-    def __init__(self, h5_file, key):
+    def __init__(self, h5_file, key,
+                 train=True, train_percent=0.95):
         f = h5py.File(h5_file, 'r')
         self.f = f
         self.key = key
+        arr = f[key]
+        if train:
+            arr = arr[0:int(train_percent*len(arr))]
+        else:
+            arr = arr[int(train_percent*len(arr))::]
+        self.arr = arr
         
     def __getitem__(self, index):
-        img = self.f[self.key][index]
+        img = self.arr[index]
         img = ((img / 255.) - 0.5) / 0.5
         img = img.swapaxes(2, 1).swapaxes(1, 0)
         return torch.from_numpy(img).float()
 
     def __len__(self):
-        return self.f[self.key].shape[0]
+        return self.arr.shape[0]

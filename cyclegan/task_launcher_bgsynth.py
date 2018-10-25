@@ -5,7 +5,8 @@ from torch.utils.data import DataLoader
 from i2i.cyclegan import CycleGAN
 from skimage.transform import rescale
 from skimage.io import imsave
-from torch.utils.data import Dataset
+from torch.utils.data import (Dataset,
+                              ConcatDataset)
 import h5py
 from util import (convert_to_rgb,
                   H5Dataset)
@@ -68,42 +69,31 @@ def image_dump_handler(out_folder, scale_factor=1.):
 
 def get_depthnet_bg_iterators_h5(bs):
     """DepthNet + background <-> frontal GT faces"""
-    filename = "depthnet_bg_vs_frontal.h5"
-    dd_train_a = H5Dataset('data/%s' % filename, 'X_train')
-    dd_train_b = H5Dataset('data/%s' % filename, 'Y_train')
-    dd_valid_a = H5Dataset('data/%s' % filename, 'X_valid')
-    dd_valid_b = H5Dataset('data/%s' % filename, 'Y_valid')
-    loader_train_a = DataLoader(dd_train_a, batch_size=bs, shuffle=True)
-    loader_train_b = DataLoader(dd_train_b, batch_size=bs, shuffle=True)
-    loader_valid_a = DataLoader(dd_valid_a, batch_size=bs, shuffle=True)
-    loader_valid_b = DataLoader(dd_valid_b, batch_size=bs, shuffle=True)
-    return loader_train_a, loader_train_b, loader_valid_a, loader_valid_b
-
-def get_gt_iterators_h5(bs):
-    """GT <-> frontal GT"""
-    filename = "gt_vs_frontal_gt.h5"
-    dd_train_a = H5Dataset('data/%s' % filename, 'X_train')
-    dd_train_b = H5Dataset('data/%s' % filename, 'Y_train')
-    dd_valid_a = H5Dataset('data/%s' % filename, 'X_valid')
-    dd_valid_b = H5Dataset('data/%s' % filename, 'Y_valid')
-    loader_train_a = DataLoader(dd_train_a, batch_size=bs, shuffle=True)
-    loader_train_b = DataLoader(dd_train_b, batch_size=bs, shuffle=True)
-    loader_valid_a = DataLoader(dd_valid_a, batch_size=bs, shuffle=True)
-    loader_valid_b = DataLoader(dd_valid_b, batch_size=bs, shuffle=True)
-    return loader_train_a, loader_train_b, loader_valid_a, loader_valid_b
-
-def get_depthnet_gt_iterators_h5(bs):
-    """DepthNet + GT <-> frontal GT faces"""
-    filename = "depthnet_gt_vs_frontal.h5"
-    dd_train_a = H5Dataset('data/%s' % filename, 'X_train')
-    dd_train_b = H5Dataset('data/%s' % filename, 'Y_train')
-    dd_valid_a = H5Dataset('data/%s' % filename, 'X_valid')
-    dd_valid_b = H5Dataset('data/%s' % filename, 'Y_valid')
-    loader_train_a = DataLoader(dd_train_a, batch_size=bs, shuffle=True)
-    loader_train_b = DataLoader(dd_train_b, batch_size=bs, shuffle=True)
-    loader_valid_a = DataLoader(dd_valid_a, batch_size=bs, shuffle=True)
-    loader_valid_b = DataLoader(dd_valid_b, batch_size=bs, shuffle=True)
-    return loader_train_a, loader_train_b, loader_valid_a, loader_valid_b
+    filename_vgg = "data/vgg/vgg.h5"
+    filename_celeba = "data/celeba/celebA.h5"
+    ## VGG ##
+    vgg_a_train = H5Dataset('%s' % filename_vgg, 'src_depthNet_and_mask', train=True)
+    vgg_b_train = H5Dataset('%s' % filename_vgg, 'tg_GT', train=True)
+    ## CELEBA ##
+    celeba_a_train = H5Dataset('%s' % filename_celeba, 'src_depthNet_and_mask', train=True)
+    celeba_b_train = H5Dataset('%s' % filename_celeba, 'tg_GT', train=True)
+    ## COMBINED ##
+    combined_a_train = ConcatDataset((vgg_a_train, celeba_a_train))
+    combined_b_train = ConcatDataset((vgg_b_train, celeba_b_train))
+    loader_a_train = DataLoader(combined_a_train, batch_size=bs, shuffle=True)
+    loader_b_train = DataLoader(combined_b_train, batch_size=bs, shuffle=True)
+    ## VGG ##
+    vgg_a_valid = H5Dataset('%s' % filename_vgg, 'src_depthNet_and_mask', train=False)
+    vgg_b_valid = H5Dataset('%s' % filename_vgg, 'tg_GT', train=False)
+    ## CELEBA ##
+    celeba_a_valid = H5Dataset('%s' % filename_celeba, 'src_depthNet_and_mask', train=False)
+    celeba_b_valid = H5Dataset('%s' % filename_celeba, 'tg_GT', train=False)
+    ## COMBINED ##
+    combined_a_valid = ConcatDataset((vgg_a_valid, celeba_a_valid))
+    combined_b_valid = ConcatDataset((vgg_b_valid, celeba_b_valid))
+    loader_a_valid = DataLoader(combined_a_valid, batch_size=bs, shuffle=True)
+    loader_b_valid = DataLoader(combined_b_valid, batch_size=bs, shuffle=True)
+    return loader_a_train, loader_b_train, loader_a_valid, loader_b_valid
 
 ##############
 # MAIN STUFF #
@@ -148,12 +138,6 @@ if __name__ == '__main__':
         if name == 'depthnet_bg_vs_frontal':
             it_train_a, it_train_b, it_valid_a, it_valid_b = \
                 get_depthnet_bg_iterators_h5(bs)
-        elif name == 'gt_vs_frontal_gt':
-            it_train_a, it_train_b, it_valid_a, it_valid_b = \
-                get_gt_iterators_h5(bs)
-        elif name == 'depthnet_gt_vs_frontal':
-            it_train_a, it_train_b, it_valid_a, it_valid_b = \
-                get_depthnet_gt_iterators_h5(bs)
         else:
             raise Exception("%s is not a valid dataset" % name)
         return it_train_a, it_train_b, it_valid_a, it_valid_b
@@ -184,9 +168,6 @@ if __name__ == '__main__':
             model_dir="%s/%s" % (args.model_save_path, args.name),
             result_dir="%s/%s" % (args.save_path, args.name),
         )
-
-    #fn = cg_baseline_sina_newblock9_inorm_sinazoom('import')
-    #fn = cg_hardbaseline2_sina_newblock9_inorm_sinazoom('import')
-    #fn = cg_baseline_sina_newblock9_inorm_sinazoom_fullbg('import')
-
-
+    elif args.mode == 'test':
+        import pdb
+        pdb.set_trace()
