@@ -1,5 +1,9 @@
 # DepthNets (in PyTorch)
 
+This part contains the pytorch implementation of DepthNet. It contains the code for running the experiments in Section 3.2 of the paper. In particular, you can run DepthNet and DepthNet+GAN models to reproduce the results in tables 2 and 3. There is also our implementation of AIGN model for the results reported in Table 3.
+
+You can run these variants of DepthNet:
+
 DepthNet with pseudoinverse formulation that estimates only depth:
 <p align="center">
   <img src="figures/DepthNet_diagram_only_depth.jpg" width="600"/>
@@ -11,12 +15,7 @@ DepthNet estimating both depth and affine params `m`:
 </p>
 
 
-
-We train DepthNet on unpaired faces belonging to different identities and compare with other models that estimate depth.
-We use the 3DFAW dataset that contains 66 3D keypoints to facilitate comparing with ground truth (GT) depth.  It provides
-13,671 train and 4,500 valid images. We extract from the valid set, 75 frontal, left and right looking faces yielding a total
-of 225 test images, which provides a total of 50,400 source and target pairs.  We train the psuedoinverse DepthNet model that
-relies on only keypoints.
+We use the 3DFAW dataset which contains 66 3D keypoints to train DepthNet models. We train on 13,671 images and validate on 4,500  images. We extract from the valid set 75 frontal, left, and right looking faces yielding a total of 225 test images, which provides a total of 50,400 source and target pairs. The DepthNet variants provided here rely on only the keypoints (not the images).
 
 Concretely, this is the loss function we wish to minimize:
 
@@ -31,11 +30,10 @@ Concretely, this is the loss function we wish to minimize:
 
 <img src="https://user-images.githubusercontent.com/2417792/46366635-96d12000-c649-11e8-83af-dfedf4b57dd7.png" width=500 />
 
-where the LHS is a `(2, k)` matrix (where `k` denotes the number of keypoints), `m` is a `(2, 4)` matrix, and the RHS is a `(4, k)` matrix. The DepthNet model is `g(x_s, x_t)`, which takes both the source and target keypoints and tries to estimate the depth of the source keypoints. As mentioned earlier, `m` can be found as a closed form solution, which is the pseudoinverse DepthNet model. However, one can also use the network `g` to also predict `m`, and we also run this experiment (more on that later).
+where the left hand side is a `(2, k)` matrix (where `k` denotes the number of keypoints), `m` is a `(2, 4)` affine transformation matrix, and the ride hand side is a `(4, k)` source keypoint matrix. The DepthNet model is `g(x_s, x_t)`, which takes both the source and target keypoints, estimates the depth of the source keypoints. `m` can be found as a closed form solution, in which case DepthNet only predicts the depth of the source keypoints (top image). However, one can also use the network `g` to predict both depth and `m` (bottom image).
 
 We also train a variant of DepthNet that applies an adversarial loss on the depth values (DepthNet+GAN).
-This model uses a conditional discriminator that is conditioned on 2D keypoints and discriminates GT from estimated depth values. 
-The model is trained with both keypoint and adversarial losses.
+This model uses a conditional discriminator that is conditioned on 2D keypoints and discriminates GT from estimated depth values. The model is trained with both keypoint reconstruction loss and the adversarial loss.
 
 ## Requirements
 
@@ -68,10 +66,11 @@ Once trained, the results and diagnostic files will be located in `results/<expe
 
 Once a model has been trained, add the `--interactive` flag to the experiment script. Instead of training the model, this will put you in a PDB debug mode. From this, one can invoke various functions to compute useful statistics based on the model, such as those shown in the paper:
 
-* Depth correlation (called 'DepthCorr' in the paper). This computes the cross-correlation matrix between the X = inferred depths and Y = the ground truth ones and computes the trace of the matrix (the higher the trace, the better). Because DepthNet requires a source and target face and that both these faces can be in one of three orientations (left-facing, center-facing, or right-facing), we compute a 3x3 matrix of traces `M` instead, where `M[i,j]` is the trace of the correlation matrix between: X (inferred depths when mapping to orientation `j` faces using orientation `i` faces), ground truth depths Y.
+* Depth correlation (called 'DepthCorr' in the paper). This computes the cross-correlation matrix between the X = inferred depths and Y = the ground truth ones and computes the trace of the matrix (the higher the trace, the better). DepthNet requires a source and target face, either of which can be in one of the three orientations (left-facing, center-facing, or right-facing). So we compute a 3x3 matrix of traces `M`, where `M[i,j]` is the trace of the correlation matrix between: X (inferred depths when mapping to orientation `j` faces using orientation `i` faces) and ground truth depths Y. To get Depth correlation run:
   * `interactive.measure_depth_test_pairwise(net, grid=True)`
-  * There is also a `dump_file` flag if you want to save the predicted depths to disk as an .npz file.
-* Squared error between the target and predicted target keypoints (i.e. the above equation)
+ 
+ 
+* Squared error between the target and predicted target keypoints (i.e. the above equation):
   * `interactive.measure_kp_error_test_pairwise(net, grid=False)`
   
 ## Reproducing figures
