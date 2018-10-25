@@ -1,9 +1,15 @@
 # FaceWarper
 
-FaceWarper is a program that uses the results from DepthNet to apply a 3D affine transform (warp) to a source face image. It uses a client-server architecture. The server, FaceWarperServer, is programed in C++11. A reference Python implementation of a client, FaceWarperClient, is provided. Finally, the Python script "warp_dataset.py" is provided to apply the 3D affine transforms inferred by DepthNet on a full dataset.
+FaceWarper is an OpenGL program that uses the results from DepthNet to apply a 3D affine transform (warp) to a source face image (shown on left) to rotate it to the target face geometry and pose (shown on top).
+
+<p align="center">
+  <img src="face_rotation_samples.jpg" width="800"/>
+</p>
+
+FaceWarper uses a client-server architecture. The server, FaceWarperServer, is programed in C++11. A reference Python implementation of a client, FaceWarperClient, is provided. Finally, the Python script "warp_dataset.py" is provided to apply the 3D affine transforms inferred by DepthNet on a full dataset.
 
 ## Usage with DepthNet
-You first need to build FaceWarperServer in order to use it. Detailed instructions on how to build it is provided in a section below.
+You first need to build FaceWarperServer in order to use it. Detailed instructions on how to build it is provided in the section below.
 
 Then, with the results obtained from running DepthNet (affine transforms, 2D keypoints and depths), run the Python script "warp_dataset.py" to generate warped faces. The following figure gives an overview of how FaceWarper works. DepthNet previously found the face 2D keypoints and their depth in the source image, and computed the affine transform to warp the source image into the pose of the target image. The target itself is not used by FaceWarper, it is presented in the figure only to better understand the result.
 
@@ -42,7 +48,9 @@ On a Debian/Ubuntu Linux distribution, these dependencies can be installed with 
 Pre-built binaries for Windows are provided in the "/FaceWarperServer/binaries/Windows" folder.
 
 ### Build
-A CMake CMakeLists.txt is provided to build FaceWarperServer. To build on Linux, the helper shell script "build_linux.sh" is provided. To build on Windows, the helper Batch script "build_windows.bat" is provided. It supposes that the required libraries are located in "FaceWarperServer\lib" directory.
+A CMake CMakeLists.txt is provided to build FaceWarperServer. <br />
+To build on **Linux**, the helper shell script "build_linux.sh" is provided. <br />
+To build on **Windows**, the helper Batch script "build_windows.bat" is provided. It supposes that the required libraries are located in "FaceWarperServer\lib" directory.
 
 If you have problems building with CMake on Windows, a Visual Studio 2017 project is also provided in the "windows_build" directory.
 
@@ -57,10 +65,10 @@ The Python program "warp_dataset.py" launches FaceWarperServer and sequentially 
 ## Implementation details
 
 ### FaceWarperClient
-FaceWarperClient is a Python package that can manage a FaceWarperServer and send warp commands to the server. It is used by "warp_dataset.py" to communicate with the FaceWarperServer. The package can be useful if you want to write a custom script to send commands to a FaceWarperServer instead of using the supplied "warp_dataset.py".
+FaceWarperClient is a Python package that manages a FaceWarperServer and sends warp commands to the server. It is used by "warp_dataset.py" to communicate with the FaceWarperServer. The package can be useful if you want to write a custom script to send commands to a FaceWarperServer instead of using the supplied "warp_dataset.py".
 
 ### Warp command format
-This section presents the command format used to send warp commands to FaceWarperServer. These are implementation details that are not necessary to understand if you just want to use the supplied FaceWarperClient package or the supplied execution script 'warp_dataset.py'. It is useful is you want to implement a new client.
+This section presents the command format used to send warp commands to FaceWarperServer. These implementation details are not necessary if you just want to use the supplied FaceWarperClient package or the supplied execution script 'warp_dataset.py'. It is useful if you want to implement a new client.
 
 The FaceWarperServer listens on the standard input for warping commands. Each warping command is a space delimited line containing the following information, in order:
 
