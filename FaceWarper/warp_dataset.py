@@ -24,23 +24,24 @@ class Dataset:
         self._dataset_dir = dataset_dir
         self._affine_identity_path = affine_identity_path
 
-    def image_filepath(self, person, fileID):
-        return os.path.join(self._dataset_dir, "images", person, fileID + ".png")
+    def identity_iterator(self):
+    	for f in os.listdir(os.path.join(self._dataset_dir, "source")):
+    		yield extract_identity(f)
 
-    def keypoints_filepath(self, person, fileID):
-        return os.path.join(self._dataset_dir, "keypoints", person, fileID + ".txt")
+    def source_filepath(self, fileID):
+        return os.path.join(self._dataset_dir, "source", fileID + ".png")
 
-    def depth_filepath(self, person, fileID):
-        return os.path.join(self._dataset_dir, "depth", person, fileID + ".txt")
+    def keypoints_filepath(self, fileID):
+        return os.path.join(self._dataset_dir, "keypoints", fileID + ".txt")
 
-    def affine_filepath(self, person, fileID):
-        return os.path.join(self._dataset_dir, "affine", person, fileID + ".txt")
+    def depth_filepath(self, fileID):
+        return os.path.join(self._dataset_dir, "depth", fileID + ".txt")
+
+    def affine_filepath(self, fileID):
+        return os.path.join(self._dataset_dir, "affine", fileID + ".txt")
 
     def affine_identity_filepath(self):
         return self._affine_identity_path
-
-    def pairs_filepath(self):
-        return os.path.join(self._dataset_dir, "pairs.txt")
 
 class ResultsDestination:
     def __init__(self, path):
@@ -48,8 +49,8 @@ class ResultsDestination:
         if not os.path.exists(self._path):
             os.makedirs(self._path)
 
-    def result_filepath(self, person, fileID):
-        return os.path.join(self._path, person, fileID + ".png")
+    def result_filepath(self, fileID):
+        return os.path.join(self._path, fileID + ".png")
 
 def write_affine_identity(filepath):
     affine_identity_matrix_string = "1.0 0.0 0.0 0.0\n0.0 1.0 0.0 0.0\n"
@@ -65,49 +66,46 @@ def test_create_affine_identity_file():
     write_affine_identity(filepath)
     return filepath
 
-def extract_identity(img_path):
-    person, fileID = img_path.split("/")
-    fileID = os.path.splitext(fileID)[0]
-    return (person, fileID)
+def extract_identity(filename):
+    return os.path.splitext(filename)[0]
 
 def warp_all(server, dataset, results_destination, options):
-    current_person = ""
     processed_count = 0
     total_timer = Timer()
-    with open(dataset.pairs_filepath()) as f:
-        for i, line in enumerate(f):
-            if i < options.start_index:
-                continue
+    for i, fileID in enumerate(dataset.identity_iterator()):
+        if i < options.start_index:
+            continue
 
-            file_index = i + 1
-            img_src = line
-            person, fileID = extract_identity(img_src)
+        image = dataset.source_filepath(fileID)
+        if not os.path.exists(image):
+            print("Skipping : %s" % (fileID,))
+            continue
 
-            image = dataset.image_filepath(person, fileID)
+        keypoints = dataset.keypoints_filepath(fileID)
+        if not os.path.exists(keypoints):
+           print("Skipping : %s" % (fileID,))
+           continue
+
+        depth = dataset.depth_filepath(fileID)
+        if not os.path.exists(depth):
+           print("Skipping : %s" % (fileID,))
+           continue
+
+        if options.identity :
+            affine = dataset.affine_identity_filepath()
+        else:
+            affine = dataset.affine_filepath(fileID)
+        if not os.path.exists(affine):
+           print("Skipping : %s" % (fileID,))
+           continue
+
+        result = results_destination.result_filepath(fileID)
+ 
+        if i % 1000 == 0 and i > 0:
+            delta = total_timer.time()
+            print(i, "(avg : {:.1f} faces/s)".format(i / delta))
             
-            if not os.path.exists(image):
-                print("Skipping : %s %s %s" % (file_index, person, fileID))
-                continue
-
-            processed_count += 1
-
-            keypoints = dataset.keypoints_filepath(person, fileID)
-            depth = dataset.depth_filepath(person, fileID)
-            if options.identity :
-                affine = dataset.affine_identity_filepath()
-            else:
-                affine = dataset.affine_filepath(person, fileID)
-            result = results_destination.result_filepath(person, fileID)
-
-            if not os.path.exists(os.path.dirname(result)):
-                os.makedirs(os.path.dirname(result))
-
-            if current_person != person:
-                delta = total_timer.time()
-                print(file_index, person, "(avg : {:.1f} faces/s)".format(processed_count / delta))
-                current_person = person
-                
-            server.send_command(fwc.build_command(image, keypoints, depth, affine, result))
+        server.send_command(fwc.build_command(image, keypoints, depth, affine, result))
 
 def parse_args():
     parser = argparse.ArgumentParser()
