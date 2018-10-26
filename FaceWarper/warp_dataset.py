@@ -69,6 +69,12 @@ def test_create_affine_identity_file():
 def extract_identity(filename):
     return os.path.splitext(filename)[0]
 
+def all_exist(paths):
+    for p in paths:
+        if not os.path.exists(p):
+            return False
+    return True
+
 def warp_all(server, dataset, results_destination, options):
     processed_count = 0
     total_timer = Timer()
@@ -77,34 +83,24 @@ def warp_all(server, dataset, results_destination, options):
             continue
 
         image = dataset.source_filepath(fileID)
-        if not os.path.exists(image):
-            print("Skipping : %s" % (fileID,))
-            continue
-
         keypoints = dataset.keypoints_filepath(fileID)
-        if not os.path.exists(keypoints):
-           print("Skipping : %s" % (fileID,))
-           continue
-
         depth = dataset.depth_filepath(fileID)
-        if not os.path.exists(depth):
-           print("Skipping : %s" % (fileID,))
-           continue
 
         if options.identity :
             affine = dataset.affine_identity_filepath()
         else:
             affine = dataset.affine_filepath(fileID)
-        if not os.path.exists(affine):
-           print("Skipping : %s" % (fileID,))
-           continue
 
         result = results_destination.result_filepath(fileID)
  
+        if not all_exist([image, keypoints, depth, affine]):
+            print("Skipping : %s" % (fileID,))
+            continue
+
         if i % 1000 == 0 and i > 0:
             delta = total_timer.time()
             print(i, "(avg : {:.1f} faces/s)".format(i / delta))
-            
+
         server.send_command(fwc.build_command(image, keypoints, depth, affine, result))
 
 def parse_args():
