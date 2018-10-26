@@ -70,6 +70,7 @@ cmake -DCMAKE_PREFIX_PATH="/path/to/glew/glew-2.1.0/build/" ..
 The Python program "warp_dataset.py" launches FaceWarperServer and sequentially sends each face in the dataset to be warped.
 
 ### Dataset structure
+The output directory of DepthNet can be directly passed to "warp_dataset.py". Some examples of the data format that should be passed to face warper is put in the ```dataset_example``` directory. If you want to build your own dataset and pass it to "warp_dataset.py", they should have the following format:
 
 The dataset folder is assumed to contain the following subfolders :
 - ```affine``` : the affine transforms.
@@ -77,15 +78,15 @@ The dataset folder is assumed to contain the following subfolders :
 - ```keypoints``` : the 2D keypoints in the source images.
 - ```source``` : the source images.
 
-All files are text files ending with ```.txt```, except for images in the ```source``` directory which are PNG images with extension ```.png```. 
+All files in these subfolders are text files ending with ```.txt```, except for images in the ```source``` directory which are PNG images with extension ```.png```. 
 
-Files between ```affine```, ```depth```, ```keypoints``` and ```source``` are matched by name. For example, the image ```source/000001_crop.png``` matches with ```affine/000001_crop.txt```, ```depth/000001_crop.txt``` and ```keypoints/000001_crop.txt```.
+Files inside ```affine```, ```depth```, ```keypoints``` and ```source``` are matched by name. For example, the image ```source/000001_crop.png``` matches with ```affine/000001_crop.txt```, ```depth/000001_crop.txt``` and ```keypoints/000001_crop.txt```.
 
 #### Affine transform file format
 There is one affine transform per file. The 2x4 matrix is encoded in the text file as follows:
 ```
-a1 a2 a3 a4
-a5 a6 a7 a8
+m1 m2 m3 m4
+m5 m6 m7 m8
 ```
 All values are floating point.
 
@@ -101,7 +102,10 @@ kp68_x kp68_y
 where ```kp_x``` and ```kp_y``` are respectively the X and Y position in pixels of the keypoint in the image. All values are integers.
 
 The order of the keypoints is important. The keypoints are exected to follow the [300-W](https://ibug.doc.ic.ac.uk/resources/300-W/) challenge landmarks location, as presented in the figure below.
-![keypoints face location](https://user-images.githubusercontent.com/627828/47577765-b4766a00-d915-11e8-9192-b65a1671ee64.jpg)
+
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/627828/47577765-b4766a00-d915-11e8-9192-b65a1671ee64.jpg" width="400"/>
+</p>
 
 #### Depth file format
 Each file contains the depth of the 68 matching 2D keypoints. There is one depth per line :
@@ -112,7 +116,7 @@ kp2_depth
 kp67_depth
 kp68_depth
 ```
-The order of the depth entries is important, it must match the keypoints in the matching keypoints file. All values are floating point.
+The order of the depth entries is important, it must match the keypoints order in the corresponding 2D keypoints file. All values are floating point.
 
 ## Implementation details
 
