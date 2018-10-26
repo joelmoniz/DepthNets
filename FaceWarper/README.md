@@ -45,7 +45,7 @@ On a Debian/Ubuntu Linux distribution, these dependencies can be installed with 
 - libpng-dev
 
 ### Pre-built binaries
-Pre-built binaries for Windows are provided in the "/FaceWarperServer/binaries/Windows" folder.
+Pre-built binaries for Windows are provided in the "/FaceWarperServer/binaries/Windows" folder. The binaries have been tested on Windows 10 (version 1803), but should work with previous versions of Windows.
 
 ### Build
 A CMake CMakeLists.txt is provided to build FaceWarperServer. <br />
