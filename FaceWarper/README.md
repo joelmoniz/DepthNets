@@ -77,6 +77,34 @@ The dataset folder is assumed to contain the following subfolders :
 - ```keypoints``` : the 2D keypoints in the source images.
 - ```source``` : the source images.
 
+All files are text files ending with ```.txt```, except for images in the ```source``` directory which are PNG images with extension ```.png```. 
+
+Files between ```affine```, ```depth```, ```keypoints``` and ```source``` are matched by name. For example, the image ```source/000001_crop.png``` matches with ```affine/000001_crop.txt```, ```depth/000001_crop.txt``` and ```keypoints/000001_crop.txt```.
+
+#### Affine transform file format
+There is one affine transform per file. The 2x4 matrix is encoded in the text file as follows:
+```
+a1 a2 a3 a4
+a5 a6 a7 a8
+```
+All values are floating point.
+
+#### Keypoints file format
+Each file contains 68 2D points and represent the position of the keypoints on a single face. The 2D position of each keypoint in the source image are encoded in the text file as follows:
+```
+kp1_x kp1_y
+kp2_x kp2_y
+...
+kp67_x kp67_y
+kp68_x kp68_y
+```
+where ```kp_x``` and ```kp_y``` are respectively the X and Y position in pixels of the keypoint in the image. All values are integers.
+
+The order of the keypoints is important. The keypoints are exected to follow the [300-W](https://ibug.doc.ic.ac.uk/resources/300-W/) challenge landmarks location, as presented in the figure below.
+![keypoints face location](https://user-images.githubusercontent.com/627828/47577765-b4766a00-d915-11e8-9192-b65a1671ee64.jpg)
+
+#### Depth file format
+
 
 ## Implementation details
 
