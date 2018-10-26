@@ -104,7 +104,15 @@ The order of the keypoints is important. The keypoints are exected to follow the
 ![keypoints face location](https://user-images.githubusercontent.com/627828/47577765-b4766a00-d915-11e8-9192-b65a1671ee64.jpg)
 
 #### Depth file format
-
+Each file contains the depth of the 68 matching 2D keypoints. There is one depth per line :
+```
+kp1_depth
+kp2_depth
+...
+kp67_depth
+kp68_depth
+```
+The order of the depth entries is important, it must match the keypoints in the matching keypoints file. All values are floating point.
 
 ## Implementation details
 
