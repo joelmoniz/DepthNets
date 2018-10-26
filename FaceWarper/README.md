@@ -24,7 +24,7 @@ Where "/path/to/results" is the path you want the warped faces to be saved to an
 - "affine" : the affine transforms.
 - "depth"  : the depth of the 2D keypoints.
 - "keypoints" : the 2D keypoints in the source images.
-- "images" : the source images.
+- "source" : the source images.
 
 ## FaceWarperServer
 FaceWarperServer is a C++11 application that applies a 3D affine transform to a mesh. It acts as a server that listens on the standard input. A visualization window is shown on the desktop. The image in this window is scaled to ease visualization, but the processing is done at the source texture resolution.
