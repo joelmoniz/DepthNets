@@ -104,16 +104,18 @@ def warp_all(server, dataset, results_destination, options):
 
         result = results_destination.result_filepath(fileID)
 
-        #print(image)
-        #print(keypoints)
-        #print(depth)
-        #print(affine)
+        print(image)
+        print(keypoints)
+        print(depth)
+        print(affine)
 
         #import sys
         #sys.exit(0)
         
- 
-        if not all_exist([image, keypoints, depth, affine]):
+        folders_to_check = [keypoints, depth, affine]
+        if options.img_override is None:
+            folders_to_check.append(image)
+        if not all_exist(folders_to_check):
             print("Skipping : %s" % (fileID,))
             continue
 
