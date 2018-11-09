@@ -79,51 +79,53 @@ def all_exist(paths):
             return False
     return True
 
-def warp_all(server, dataset, results_destination, options):
+def warp_all(dataset, results_destination, options):
     processed_count = 0
     total_timer = Timer()
     for i, fileID in enumerate(dataset.identity_iterator()):
 
-        print(fileID)
+        with fwc.Server(options.server_exec) as server:
         
-        if i < options.start_index:
-            continue
+            print(fileID)
 
-        if options.img_override is not None:
-            image = options.img_override
-        else:
-            image = dataset.source_filepath(fileID)
-        keypoints = dataset.keypoints_filepath(fileID)
-        depth = dataset.depth_filepath(fileID)
+            if i < options.start_index:
+                continue
 
-        if options.identity :
-            affine = dataset.affine_identity_filepath()
-        else:
-            affine = dataset.affine_filepath(fileID)
+            if options.img_override is not None:
+                image = options.img_override
+            else:
+                image = dataset.source_filepath(fileID)
+            keypoints = dataset.keypoints_filepath(fileID)
+            depth = dataset.depth_filepath(fileID)
+
+            if options.identity :
+                affine = dataset.affine_identity_filepath()
+            else:
+                affine = dataset.affine_filepath(fileID)
 
 
-        result = results_destination.result_filepath(fileID)
+            result = results_destination.result_filepath(fileID)
 
-        print(image)
-        print(keypoints)
-        print(depth)
-        print(affine)
+            print(image)
+            print(keypoints)
+            print(depth)
+            print(affine)
 
-        #import sys
-        #sys.exit(0)
-        
-        folders_to_check = [keypoints, depth, affine]
-        if options.img_override is None:
-            folders_to_check.append(image)
-        if not all_exist(folders_to_check):
-            print("Skipping : %s" % (fileID,))
-            continue
+            #import sys
+            #sys.exit(0)
 
-        if i % 1000 == 0 and i > 0:
-            delta = total_timer.time()
-            print(i, "(avg : {:.1f} faces/s)".format(i / delta))
+            folders_to_check = [keypoints, depth, affine]
+            if options.img_override is None:
+                folders_to_check.append(image)
+            if not all_exist(folders_to_check):
+                print("Skipping : %s" % (fileID,))
+                continue
 
-        server.send_command(fwc.build_command(image, keypoints, depth, affine, result))
+            if i % 1000 == 0 and i > 0:
+                delta = total_timer.time()
+                print(i, "(avg : {:.1f} faces/s)".format(i / delta))
+
+            server.send_command(fwc.build_command(image, keypoints, depth, affine, result))
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -142,8 +144,8 @@ def main():
     affine_identity_filepath = test_create_affine_identity_file()
     dataset = Dataset(options.dataset_path, affine_identity_filepath, options.use_tgt_dir)
     results_destination = ResultsDestination(options.results)
-    with fwc.Server(options.server_exec) as server:
-        warp_all(server, dataset, results_destination, options)
+    #with fwc.Server(options.server_exec) as server:
+    warp_all(dataset, results_destination, options)
 
 if __name__ == '__main__':
     main()
