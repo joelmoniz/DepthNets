@@ -6,12 +6,12 @@ You can run these variants of DepthNet:
 
 DepthNet with pseudoinverse formulation that estimates only depth:
 <p align="center">
-  <img src="figures/DepthNet_diagram_only_depth.jpg" width="600"/>
+  <img src="figures/DepthNet_only_kpts_pseudo_inverse.jpg" width="600"/>
 </p>
 
 DepthNet estimating both depth and affine params `m`:
 <p align="center">
-  <img src="figures/DepthNet_diagram_with_Kpt.jpg" width="600"/>
+  <img src="figures/DepthNet_only_kpts.jpg" width="600"/>
 </p>
 
 
