@@ -20,11 +20,11 @@ class Timer:
         return time.perf_counter() - self._start_time
 
 class Dataset:
-    def __init__(self, dataset_dir, affine_identity_path, use_tgt_dir=False):
+    def __init__(self, dataset_dir, affine_identity_path, use_dir=None):
         self._dataset_dir = dataset_dir
         self._affine_identity_path = affine_identity_path
-        if use_tgt_dir:
-            self.use_folder = "tgt_images"
+        if use_dir is not None:
+            self.use_folder = use_dir
         else:
             self.use_folder = "source"
 
@@ -135,14 +135,14 @@ def parse_args():
     parser.add_argument('--identity', action='store_true', help='Use identity affine transform.')
     parser.add_argument('--start_index', type=int, default=0, help='Index of the first image to warp in the dataset.')
     parser.add_argument('--img_override', type=str, default=None, help='If set, use this specified image instead of those in the source folder')
-    parser.add_argument('--use_tgt_dir', action='store_true', help='If set, find file ids using the target folder, instead of source')
+    parser.add_argument('--use_dir', type=str, help='If set, find file ids using the specified folder, instead of source')
     args = parser.parse_args()
     return args
 
 def main():
     options = parse_args()
     affine_identity_filepath = test_create_affine_identity_file()
-    dataset = Dataset(options.dataset_path, affine_identity_filepath, options.use_tgt_dir)
+    dataset = Dataset(options.dataset_path, affine_identity_filepath, options.use_dir)
     results_destination = ResultsDestination(options.results)
     #with fwc.Server(options.server_exec) as server:
     warp_all(dataset, results_destination, options)
