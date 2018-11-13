@@ -19,8 +19,8 @@ process, one must compile the `FaceWarperServer` which is in the parent director
 
 One of the applications of CycleGAN was using it to clean up the operation which warps one face onto another. This involves using CycleGAN to learn a mapping between two domains: the domain of faces which have been pasted onto other faces (DepthNet faces) and the domain of ground truth faces. When this is trained, the mapping `depthnet -> real face` is the one we are interested in utilising.
 
-<p align="center">
-  <img src="https://user-images.githubusercontent.com/2417792/46300240-34a4ec00-c571-11e8-8051-714e1a9baeca.png" width="500"/>
+<p align="left">
+  <img src="https://user-images.githubusercontent.com/2417792/46300240-34a4ec00-c571-11e8-8051-714e1a9baeca.png" width="400"/>
 </p>
 
 Some example images are shown below. (From left to right: source face, target face, DepthNet face, cleanup of DepthNet face)
@@ -43,8 +43,8 @@ You can find the pre-trained checkpoint for this [here](https://mega.nz/#!kPYBSS
 
 Since DepthNet only warps the region corresponding to the face, it would be useful to be able to resynthesize the outside region such as the background and hair. In this experiment, CycleGAN maps from the domain consisting of DepthNet frontalised face and the background of the original face to the domain of ground truth (CelebA) images:
 
-<p align="center">
-  <img src="https://user-images.githubusercontent.com/2417792/46300959-ff999900-c572-11e8-847f-bdf7fa5025ee.png" width="500"/>
+<p align="left">
+  <img src="https://user-images.githubusercontent.com/2417792/46300959-ff999900-c572-11e8-847f-bdf7fa5025ee.png" width="400"/>
 </p>
 
 Some examples are shown below. (From left to right: source image, source image + keypts, frontalised face with DepthNet, CycleGAN combining (3) and background of (1))
