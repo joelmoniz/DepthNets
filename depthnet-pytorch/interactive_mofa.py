@@ -1,4 +1,5 @@
 import torch
+import os
 from torch.autograd import Variable
 from iterators.iterator import (get_data_valid,
                                 get_data_train,
@@ -10,8 +11,12 @@ from scipy.stats.stats import pearsonr
 from interactive import compute_covar
 import util
 
-MOFA_FILE = "/data/milatmp1/beckhamc/tmp_data/3dfaw/mofa.npz"
-TEST_FILE = "/data/milatmp1/beckhamc/tmp_data/3dfaw/test.npz"
+if "DIR_3DFAW" not in os.environ:
+    raise Exception("DIR_3DFAW env variable not found -- source env.sh")
+DATA_DIR = os.environ["DIR_3DFAW"]
+
+MOFA_FILE = "%s/mofa.npz" % DATA_DIR
+TEST_FILE = "%s/test.npz" % DATA_DIR
 
 mofa_dat = np.load(MOFA_FILE)
 mofa_ids = mofa_dat['ids']
@@ -102,14 +107,12 @@ def kp_fn(xy1_keypts, z1_keypts, xy2_keypts, z2_keypts, pred_z1_keypts, same=Fal
             l2_losses.append(l2_loss.data.item())
     return l2_losses
 
-'''
 # Predict KP error on overall test set.
 all_all = kp_fn(test_mofa_xy, test_mofa_z,
                 test_mofa_xy, test_mofa_z,
                 mofa_z,
                 same=True)
 print(np.mean(all_all), np.std(all_all))
-'''
 
 ######################################################
 

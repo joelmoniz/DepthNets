@@ -6,13 +6,10 @@ import numpy as np
 from tqdm import tqdm
 from scipy.stats.stats import pearsonr
 from aigns import params_to_3d
-import util
+from util import (compute_covar,
+                  predict_tgt_kp_pseudoinv)
 
-
-def compute_covar(preds, actuals):
-    return np.sum(np.diag(np.abs(np.corrcoef(preds, actuals, rowvar=0)[0:66,66::])))
-
-def measure_depth_test(net):
+def measure_depth(net, grid=True, dump_file=None, mode='test'):
     """
     Measure depth metrics on the test set in a pairwise
       fashion.
@@ -20,10 +17,16 @@ def measure_depth_test(net):
 
     net._eval()
 
-    def fn(xy_keypts, z_keypts):
+    def fn(xy_keypts, z_keypts, dump_file=None):
+        
         pearsons = []
         l2_losses = []
         preds = []
+
+        if dump_file is not None:
+            n = xy_keypts.shape[0]
+            map_ = np.zeros((n, 66))
+        
         for i in range(len(xy_keypts)):
             
             keypt_xy = torch.from_numpy(xy_keypts[i][np.newaxis]).float()
@@ -41,6 +44,9 @@ def measure_depth_test(net):
             
             #pred_src_z = pred_src_z.data.cpu().numpy()[0]
             pred_src_z = x_3d[:,-1,:].data.cpu().numpy() # last ch is the z's
+
+            if dump_file is not None:
+                map_[i] = pred_src_z[0]
             
             # TODO: clean this shit up
             pearsons.append(
@@ -49,38 +55,50 @@ def measure_depth_test(net):
             preds.append(pred_src_z.flatten())
         #print("len of array: %i" % len(pearsons))
         covar = compute_covar(preds, z_keypts)
+        if dump_file is not None:
+            np.savez(dump_file, preds=map_)
         return {
             'pearsons': (np.mean(pearsons), np.std(pearsons)),
             'l2_losses': (np.mean(l2_losses), np.std(l2_losses)),
             'covar': covar
         }
 
-    xy_keypts, z_keypts, orients = get_data_test()
-    left = orients=='left'
-    center = orients=='center'
-    right = orients=='right'
-    xy_keypts_left, z_keypts_left = xy_keypts[left], z_keypts[left]
-    xy_keypts_center, z_keypts_center = xy_keypts[center], z_keypts[center]
-    xy_keypts_right, z_keypts_right = xy_keypts[right], z_keypts[right]
+    if mode == 'test':
+        xy_keypts, z_keypts, orients = get_data_test()
+    else:
+        xy_keypts, z_keypts = get_data_valid()
+        xy_keypts = xy_keypts[0:225]
+        z_keypts = z_keypts[0:225]
 
-    all_ = fn(xy_keypts, z_keypts)
-    print( "all = ", all_['covar'])
-    #print( "depth l2 = ", all_['l2_losses'] )
+    if not grid:
+        
+        all_ = fn(xy_keypts, z_keypts, dump_file=dump_file)
+        print( "all = ", all_['covar'])
+        #print( "depth l2 = ", all_['l2_losses'] )
 
-    left = fn(xy_keypts_left, z_keypts_left)
-    print( "left = ", left['covar'])
-    #print( "depth l2 = ", left['l2_losses'] )
-    
-    center = fn(xy_keypts_center, z_keypts_center)
-    print("center = ", center['covar'])
-    #print( "depth l2 = ", center['l2_losses'] )
-    
-    right = fn(xy_keypts_right, z_keypts_right)
-    print("right = ", right['covar'])
-    #print( "depth l2 = ", right['l2_losses'] )
+    else:
+
+        if mode == 'valid':
+            raise Exception("Cannot do left/center/right with valid set!")
+
+        left = orients=='left'
+        center = orients=='center'
+        right = orients=='right'
+        xy_keypts_left, z_keypts_left = xy_keypts[left], z_keypts[left]
+        xy_keypts_center, z_keypts_center = xy_keypts[center], z_keypts[center]
+        xy_keypts_right, z_keypts_right = xy_keypts[right], z_keypts[right]
+        
+        left = fn(xy_keypts_left, z_keypts_left)
+        print( "left = ", left['covar'])
+
+        center = fn(xy_keypts_center, z_keypts_center)
+        print("center = ", center['covar'])
+
+        right = fn(xy_keypts_right, z_keypts_right)
+        print("right = ", right['covar'])
 
     
-def measure_kp_error_test(net, grid=True):
+def measure_kp_error(net, grid=True, mode='test'):
     """
     Measure the keypoint error on the test set.
     """
@@ -116,21 +134,20 @@ def measure_kp_error_test(net, grid=True):
                 # Extract the i'th z value from pred_src_zs.
                 pred_src_z = pred_src_zs[i].unsqueeze(1)
 
-                rhs = util.predict_tgt_kp_pseudoinv(xy_keypt_src,
-                                                    pred_src_z,
-                                                    xy_keypt_tgt)
+                rhs = predict_tgt_kp_pseudoinv(xy_keypt_src,
+                                               pred_src_z,
+                                               xy_keypt_tgt)
                 l2_loss = torch.mean((xy_keypt_tgt_torch - rhs)**2)
                 l2_losses.append(l2_loss.data.item())
             
         return l2_losses
 
-    xy_keypts, z_keypts, orients = get_data_test()
-    left = orients=='left'
-    center = orients=='center'
-    right = orients=='right'
-    xy_keypts_left, z_keypts_left = xy_keypts[left], z_keypts[left]
-    xy_keypts_center, z_keypts_center = xy_keypts[center], z_keypts[center]
-    xy_keypts_right, z_keypts_right = xy_keypts[right], z_keypts[right]
+    if mode == 'test':
+        xy_keypts, z_keypts, orients = get_data_test()
+    else:
+        xy_keypts, z_keypts = get_data_valid()
+        xy_keypts = xy_keypts[0:225]
+        z_keypts = z_keypts[0:225]
 
     if not grid:
     
@@ -138,10 +155,13 @@ def measure_kp_error_test(net, grid=True):
         print("src: all, tgt: all")
         all_all = fn(xy_keypts, z_keypts,
                      xy_keypts, z_keypts, same=True)
-        print(np.mean(all_all), np.std(all_all))
+        print(np.mean(all_all), " +/- ", np.std(all_all))
 
     else:
 
+        if mode == 'valid':
+            raise Exception("Cannot do left/center/right with valid set!")
+        
         left = orients=='left'
         center = orients=='center'
         right = orients=='right'

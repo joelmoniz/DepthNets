@@ -1,20 +1,16 @@
-from __future__ import print_function
-
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import torch
 import time
 import os
 import numpy as np
-# torch imports
-import torch
 import torch.optim as optim
 from torch.autograd import grad
-# torchvision
 from collections import OrderedDict
 from tqdm import tqdm
-import util
+from util import construct_A
 
 def save_handler(results_dir):
     vis_dir = "%s/vis" % results_dir
@@ -100,13 +96,11 @@ class DepthNetGAN():
                  opt_d_args={'lr':0.0002, 'betas':(0.5, 0.999)},
                  opt_g_args={'lr':0.0002, 'betas':(0.5, 0.999)},
                  lamb=1.,
-                 sigma=1.,
                  detach=False,
                  l2_decay=0.,
                  dnorm=0.,
                  use_l1=False,
                  no_gan=False,
-                 cheat=False,
                  update_g_every=1.,
                  handlers=[],
                  scheduler_fn=None,
@@ -115,14 +109,22 @@ class DepthNetGAN():
         """
         Parameters
         ----------
-        lamb: keypt loss coefficient
-        l2_decay: weight decay coefficient
-        dnorm: gradient norm penalty for GAN (if enabled)
-        use_l1: use L1 for keypt loss instead of L2
-        cheat: regress the ground truth src depth (uses same
-          coef as lambda)
-        update_g_every: update the generator this many iterations.
-          Only makes sense if GAN is enabled.
+        g_fn: generator function which outputs predicted src depths.
+        d_fn: discriminator function (not used if GAN is disabled).
+        opt_g: optimiser class for generator.
+        opt_d: optimiser class for discriminator.
+        lamb: keypt loss coefficient (for when GAN is enabled).
+        detach: if `True`, don't backprop through the inverse formulation
+          of m.
+        l2_decay: weight decay coefficient.
+        dnorm: gradient norm penalty for GAN (if enabled).
+        use_l1: use L1 for keypt loss instead of L2.
+        no_gan: if `True`, disable GAN, so there is only the keypt loss.
+        update_g_every: (GAN only) update the generator this many iterations
+        handlers:
+        scheduler_fn:
+        scheduler_args:
+        use_cuda:
         """
         assert use_cuda in [True, False, 'detect']
         if dnorm > 0. and no_gan:
@@ -133,10 +135,8 @@ class DepthNetGAN():
         self.g = g_fn
         self.d = d_fn
         self.detach = detach
-        self.sigma = sigma
         self.dnorm = dnorm
         self.use_l1 = use_l1
-        self.cheat = cheat
         self.no_gan = no_gan
         self.update_g_every = update_g_every
         optim_g = opt_g(self.g.parameters(),
@@ -171,35 +171,6 @@ class DepthNetGAN():
         self.g.eval()
         self.d.eval()
 
-    def construct_A(self, src_kps, src_z_pred):
-        K = 66
-        bs = src_kps.shape[0]
-        # TODO: make more efficient
-        A = np.zeros((bs, K*2, 8))
-        for b in range(bs):
-            c = 0
-            for i in range(0, A.shape[1]-1, 2):
-                A[b, i, 0] = src_kps[b, 0, c] # xi
-                A[b, i, 1] = src_kps[b, 1, c] # yi
-                #A[i,2] = z_pred[c] # zi
-                A[b, i, -2] = 1.
-                #
-                A[b, i+1, 4] = src_kps[b, 0, c] # xi
-                A[b, i+1, 5] =  src_kps[b, 1, c] # yi
-                #A[i+1,6] = z_pred[c] # zi
-                A[b, i+1, -1] = 1.
-                c += 1
-        A = torch.from_numpy(A).float()
-        if self.use_cuda:
-            A = A.cuda()
-        for b in range(bs):
-            c = 0
-            for i in range(0, A.size(1)-1, 2):
-                A[b, i, 2] = src_z_pred[b, 0, c] # zi
-                A[b, i+1, 6] = src_z_pred[b, 0, c] # zi
-                c += 1
-        return A
-
     def grad_norm(self, d_out, x):
         ones = torch.ones(d_out.size())
         if self.use_cuda:
@@ -212,13 +183,6 @@ class DepthNetGAN():
         g_norm = (grad_wrt_x.view(
             grad_wrt_x.size()[0], -1).norm(2, 1)** 2).mean()
         return g_norm
-    
-    def inv(self, x):
-        # https://github.com/pytorch/pytorch/pull/1670
-        eye = torch.eye(8).float()
-        if self.use_cuda:
-            eye = eye.cuda()
-        return torch.inverse( (self.sigma*eye) +x)
         
     def run_on_instance(self,
                         xy_keypts_src,
@@ -260,25 +224,28 @@ class DepthNetGAN():
             # NOTE: ONLY USE FOR NON-MODEL VALIDATION
             # Use the ground truth z's to construct the
             # A matrix instead of predicted depths.
-            A = self.construct_A(xy_keypts_src,
-                                 z_keypts_src_torch.unsqueeze(1))
+            A = construct_A(xy_keypts_src,
+                            z_keypts_src_torch.unsqueeze(1))
         else:
             if self.detach:
-                A = self.construct_A(xy_keypts_src,
-                                     src_z_pred.detach())
+                A = construct_A(xy_keypts_src,
+                                src_z_pred.detach())
             else:
-                A = self.construct_A(xy_keypts_src,
-                                     src_z_pred)
+                A = construct_A(xy_keypts_src,
+                                src_z_pred)
         xt = xy_keypts_tgt.reshape((bs, 2*66), order='F') # (bs, 66*2)
         xt = torch.from_numpy(xt).float()
         if self.use_cuda:
             xt = xt.cuda()
-        X1 = [self.inv(mat) for mat in
+        X1 = [torch.inverse(mat) for mat in
               torch.matmul(A.transpose(2, 1), A)]
         X1 = torch.stack(X1)
         X2 = torch.bmm(A.transpose(2, 1), xt.unsqueeze(2))
         m = torch.bmm(X1, X2) # (bs,8,1)
-        m_rshp = m.squeeze(2).view((bs, 2, 4))
+        m_rshp = torch.cat((m[:, 0:6, :].reshape((bs, 2, 3)),
+                            m[:, [6, 7], :].reshape((bs, 2, 1))),
+                           dim=2)
+        #m_rshp = m.squeeze(2).view((bs, 2, 4))
         # Now we have to implement equation (4).
         # Let's compute the right-hand term which
         # multiplies m.
@@ -293,29 +260,25 @@ class DepthNetGAN():
                               z_keypts_src_torch.unsqueeze(1),
                               ones), dim=1)
         else:
-            rht = torch.cat( (xy_keypts_src_torch, src_z_pred, ones), dim=1)
+            rht = torch.cat( (xy_keypts_src_torch,
+                              src_z_pred,
+                              ones), dim=1)
         rhs = torch.matmul(m_rshp, rht)
         if not self.use_l1:
             l2_loss = torch.mean((xy_keypts_tgt_torch - rhs)**2)
         else:
             l2_loss = torch.mean(torch.abs(xy_keypts_tgt_torch - rhs))
-        if self.cheat:
-            cheat_l1_loss = torch.mean(
-                torch.abs(src_z_pred - z_keypts_src_torch.unsqueeze(1)))
-        # Now do the adversarial losses.
-        src_z_pred_given_inp = torch.cat(
-            (src_z_pred, xy_keypts_src_torch), dim=1)
+        if is_gan:
+            src_z_pred_given_inp = torch.cat(
+                (src_z_pred, xy_keypts_src_torch), dim=1)
+            g_loss = -torch.mean(self.d(src_z_pred_given_inp))
         if train:
             (self.lamb*l2_loss).backward(retain_graph=True)
-            if self.cheat:
-                cheat_l1_loss.backward(retain_graph=True)
-        if is_gan:
-            g_loss = -torch.mean(self.d(src_z_pred_given_inp))
-            if train:
-                g_loss.backward()
-        if train:
-            if (kwargs['iter']-1) % self.update_g_every == 0:
-                self.optim['g'].step()
+            if is_gan:
+                # Now do the adversarial losses.
+                if (kwargs['iter']-1) % self.update_g_every == 0:
+                    g_loss.backward()
+            self.optim['g'].step()
         # Now do the discriminator
         if is_gan:
             self.optim['d'].zero_grad()
@@ -349,11 +312,11 @@ class DepthNetGAN():
             losses['d_loss_fake'] = d_loss_fake.data.item(),
             if self.dnorm > 0:
                 losses['dnorm_x'] = g_norm_x.data.item()
-        if self.cheat:
-            losses['cheat_l1_loss'] = cheat_l1_loss.data.item()
         outputs = {
-            'src_z_pred': src_z_pred,
-            'tgt_2d_pred': rhs
+            'src_z_pred': src_z_pred.detach(),
+            'tgt_2d_pred': rhs.detach(),
+            'affine': m_rshp.detach(),
+            'rht': rht
         }
         return losses, outputs
 
@@ -430,7 +393,6 @@ class DepthNetGAN():
               epochs,
               model_dir,
               result_dir,
-              append=False,
               save_every=1,
               scheduler_fn=None,
               scheduler_args={},
@@ -438,7 +400,10 @@ class DepthNetGAN():
         for folder_name in [model_dir, result_dir]:
             if folder_name is not None and not os.path.exists(folder_name):
                 os.makedirs(folder_name)
-        f_mode = 'w' if not append else 'a'
+        if os.path.exists("%s/results.txt" % result_dir):
+            f_mode = 'a'
+        else:
+            f_mode = 'w'
         f = None
         if result_dir is not None:
             f = open("%s/results.txt" % result_dir, f_mode)
@@ -521,8 +486,7 @@ class DepthNetGAN():
             str_ = ",".join([str(all_dict[key]) for key in all_dict])
             print(str_)
             if f is not None:
-                if (epoch+1) == 1 and not append:
-                    # If we're not resuming, then write the header.
+                if (epoch+1) == 1:
                     f.write(",".join(all_dict.keys()) + "\n")
                 f.write(str_ + "\n")
                 f.flush()
@@ -590,6 +554,3 @@ class zip_iter():
             self.done = True
             raise StopIteration
         return result1, result2
-        
-if __name__ == '__main__':
-    pass

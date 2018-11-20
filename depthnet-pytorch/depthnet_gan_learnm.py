@@ -56,9 +56,6 @@ class DepthNetGAN_M(DepthNetGAN):
             l2_loss = torch.mean((xy_keypts_tgt_torch - rhs)**2)
         else:
             l2_loss = torch.mean(torch.abs(xy_keypts_tgt_torch - rhs))
-        if self.cheat:
-            cheat_l1_loss = torch.mean(
-                torch.abs(src_z_pred - z_keypts_src_torch.unsqueeze(1)))
         # Now do the adversarial losses.
         src_z_pred_given_inp = torch.cat(
             (src_z_pred, xy_keypts_src_torch), dim=1)
@@ -67,8 +64,6 @@ class DepthNetGAN_M(DepthNetGAN):
             (self.lamb*l2_loss).backward(retain_graph=True)
             if is_gan:
                 g_loss = -torch.mean(self.d(src_z_pred_given_inp))
-                if self.cheat:
-                    cheat_l1_loss.backward(retain_graph=True)
                 if (kwargs['iter']-1) % self.update_g_every == 0:
                     # Also update generator.
                     g_loss.backward()
@@ -112,10 +107,9 @@ class DepthNetGAN_M(DepthNetGAN):
             losses['d_loss_fake'] = d_loss_fake.data.item()
             if self.dnorm > 0:
                 losses['dnorm_x'] = g_norm_x.data.item()
-        if self.cheat:
-            losses['cheat_l1_loss'] = cheat_l1_loss.data.item()
         outputs = {
-            'src_z_pred': src_z_pred,
-            'tgt_2d_pred': rhs
+            'src_z_pred': src_z_pred.detach(),
+            'tgt_2d_pred': rhs.detach(),
+            'affine': m_rshp.detach()
         }
         return losses, outputs
