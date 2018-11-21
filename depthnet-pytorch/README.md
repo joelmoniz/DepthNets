@@ -65,18 +65,26 @@ Once trained, the results and diagnostic files will be located in `results/<expe
 
 ## Evaluation
 
-Once a model has been trained, add the `--interactive` flag to the experiment script. Instead of training the model, this will put you in a PDB debug mode. From this, one can invoke various functions to compute useful statistics based on the model, such as those shown in the paper:
+Once a model has been trained, simply add the flag `--compute_stats` to the experiment script. Instead of training the model, this will compute the two quantitative measures (DepthCorr, and MSE between predicted and target keypoints) on both the validation and test sets. An example of this output is shown below:
 
-* Depth correlation (called 'DepthCorr' in the paper). This computes the cross-correlation matrix between the X = inferred depths and Y = the ground truth ones and computes the trace of the matrix (the higher the trace, the better). DepthNet requires a source and target face, either of which can be in one of the three orientations (left-facing, center-facing, or right-facing). So we compute a 3x3 matrix of traces `M`, where `M[i,j]` is the trace of the correlation matrix between: X (inferred depths when mapping to orientation `j` faces using orientation `i` faces) and ground truth depths Y. To get Depth correlation run:
-  * `measure_depth(net, grid=True)`
- 
- 
-* Squared error between the target and predicted target keypoints (i.e. the above equation):
-  * `measure_kp_error(net, grid=False)`
-  
+```
+Computing stats on validation set...
+DepthCorr: 38.93904645794212
+src: all, tgt: all
+kp error: 6.285902712809797e-05  +/-  4.093232188744476e-05
+Computing stats on test set...
+DepthCorr:
+	left		center		right
+left	31.105821	29.850673	30.908412
+center	32.039907	35.769691	35.352298
+right	26.957233	27.972830	30.943845
+src: all, tgt: all
+kp error: 6.54138117158912e-05  +/-  4.45993193566409e-05
+```
+
 ## Reproducing figures
 
-To reproduce the figures like the ones shown in figures 2 and 3 of the paper, one needs to run experiments (1), (3), and (5) in interactive mode, and invoke either the line `measure_depth(net, grid=False, dump_file=<some_output_file>)` (for DepthNet) or `measure_depth(net, dump_file=<some_output_file>)` (for AIGNs), which will dump an .npz file containing the depths inferred by the model. When you have all three of these .npz files saved somewhere, go into the `figures` directory and run:
+To reproduce the figures like the ones shown in figures 2 and 3 of the paper, one needs to run experiments (1), (3), and (5) in interactive mode but add the flag `--dump_depths=<output_file>`, which will dump an .npz file containing the depths inferred by the model (note that this flag is mutually exclusive with the aforementioned `--compute_stats` flag). When you have all three of these .npz files saved somewhere, go into the `figures` directory and run:
 ```
 python gen_visualisations.py \
 --depthnet_npz=<path_to_depthnet_npz> \
