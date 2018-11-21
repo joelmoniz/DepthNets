@@ -84,3 +84,89 @@ python gen_visualisations.py \
 --aign_npz=<path_to_aign_npz>
 ```
 The outputs can be found in the `output` folder of that same directory.
+
+## Exporting to FaceWarper
+
+This repo contains a variety of scripts which can be used to export input data for FaceWarper.
+
+### Warping a source face to a target face
+
+`export_to_facewarper_single.py` allows one to simply warp a source face to the specified target face. An example is shown in the directory `exps_warping/warp_example`:
+
+```
+python export_to_facewarper_single.py \
+--network=architectures/depthnet_shallowd5.py \
+--checkpoint=results/${NAME}/models/100.pkl \
+--src_kpts_file=exps_warping/warp_example/src_keypoints.txt \
+--tgt_kpts_file=exps_warping/warp_example/obama_keypoints.txt \
+--src_img_file=exps_warping/warp_example/src.png \
+--tgt_img_file=exps_warping/warp_example/obama.png \
+--output_dir=facewarper_input/${OUT_FOLDER} \
+--kpt_file_separator=' '
+```
+
+Assuming the output of this script (`warp_example`) is in the same directory as Facewarper, the warp can be done by running the following script:
+
+```
+python warp_dataset.py \
+--server_exec=FaceWarperServer/build/FaceWarperServer \
+warp_example \
+--results=warp_example/expected_result \
+--use_dir=tgt_images
+```
+
+<p align="center">
+  <img src="figures/chris_xmas_yellow.png" width="150"/> <img src="figures/obama.png" width="150"/> <img src="figures/chris_warped_to_obama.png" width="150"/> <img src="figures/chris_warped_to_obama_overlay.png" width="150"/>
+</p>
+(source image, target image, warped source, warped source pasted on target)
+
+### Warping a source face to a rotating target face
+
+<img src="figures/depthnet_warp.png" width="300"/> <img src="figures/warp_src.gif" width="300"/>
+
+`export_anim_to_facewarper.py` allows you to warp a source face to many different rotations of a target face. For example, one could choose to rotate the target face 90 degrees counterclockwise and then clockwise, and warping the source face to all faces in between those values.
+
+Here is an example script you can run (this can be found in `exps_warping/rotation_example/run.sh`):
+
+```
+NAME=exp1_lamb1_sd5_nogan_sigma0_fixm
+rm -r input_facewarper/rotation_example
+python export_anim_to_facewarper.py \
+--checkpoint=results/${NAME}/models/100.pkl \
+--network=architectures/depthnet_shallowd5.py \
+--axis=y \
+--src_kpts_file=exps_warping/rotation_example/keypoints.txt \
+--tgt_kpts_file=exps_warping/rotation_example/keypoints.txt \
+--src_img_file=exps_warping/rotation_example/src.png \
+--tgt_img_file=exps_warping/rotation_example/src.png \
+--output_dir=input_facewarper/rotation_example \
+--tgt_angle_1=0.785 \
+--tgt_angle_2=-0.785 \
+--scale_depth=1 \
+--kpt_file_separator=' '
+```
+
+In this command, the target face is simply the source face. We generate rotations of the target face, first starting from the original position of the face to 0.785 radians (`tgt_angle_1`) (i.e. pi/4 radians, which is 90 degrees), and then from that position to -0.785 radians (`tgt_angle_2`). This rotation pattern correponds to that of the gif image shown above. Note that since this rotation is being performed on the 3D target keypoints (before they are projected into 2D as input to DepthNet), we must already know the depth of the target. This means that the .csv file denoting the target keypoints must have a valid 3rd column, or else the script will raise an exception.
+
+Note that a more straightforward way to do the above is to simply estimate the depth of the source face and then rotate that instead. This means that a target face is only used to estimate the depth of the source. To do this, we can simply add the `--rotate_source` flag to the script. Note however that if this is used with the regular model (no GAN), the depths inferred are likely to be sub-par and therefore the rotation will also be sub-par. In that case, one can instead use the GAN model instead (refer to the comments in `run.sh`).
+
+Assuming the output of this script (i.e., `rotation_example`) is in the same directory as FaceWarper, you can input this into the application as follows by using the `warp_dataset.py` script:
+
+```
+python warp_dataset.py \
+--server_exec FaceWarperServer/build/FaceWarperServer \
+rotation_example/ \
+--results=rotation_example/expected_result/ \
+--img_override=rotation_example/source/src.png \
+--use_dir=affine
+```
+
+This script will spit out frames in the `rotation_example/expected_result` directory, which can then be converted to a video with something like ImageMagick or ffmpeg. If you have `ffmpeg`, this is a neat command you can use to convert these to an .mp4 file:
+
+```
+ffmpeg -framerate 24 -pattern_type glob -i '*.png' -c:v libx264 out.mp4
+```
+
+Shown below is the source image used and the resulting animation output by FaceWarper:
+
+<p align="center"><img src="figures/chris_xmas_yellow.png" width="200"/> <img src="figures/chris_xmas_yellow_rotate.gif" width="200"/></p>
