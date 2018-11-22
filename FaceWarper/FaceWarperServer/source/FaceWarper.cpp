@@ -17,7 +17,6 @@
 ShaderProgram faceShader({ {"vertex", DEFAULT_VERTEX_SHADER_STRING, GL_VERTEX_SHADER}, {"fragment", DEFAULT_FRAGMENT_SHADER_STRING, GL_FRAGMENT_SHADER} });
 FaceTopology faceTopology;
 std::shared_ptr<FBO> offscreenFBO;
-bool isFirstRun = true;
 const std::string READY("ready");
 const float FRAMERATE = 10000000.0f;
 
@@ -142,7 +141,7 @@ void draw(void)
 	InputFiles files = read_filepaths();
 
 	Image image = read_png(files.image);
-	if (isFirstRun)
+	if (offscreenFBO->dimensions() != Dimensions(image.width(), image.height()))
 	{
 		offscreenFBO->init(image.width(), image.height());
 	}
@@ -172,8 +171,6 @@ void draw(void)
 	offscreenFBO->disable();
 
     // No call to glutSwapBuffers() since we don't need to be in sync with vsync (unnecessary slowdown).
-
-	isFirstRun = false;
 }
 
 void idle(void)

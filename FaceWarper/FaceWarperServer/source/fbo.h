@@ -3,6 +3,18 @@
 #include <iostream>
 #include <GL/glew.h>
 
+struct Dimensions
+{
+	Dimensions() : width(0), height(0) {}
+	Dimensions(int width, int height) : width(width), height(height) {}
+
+	int width;
+	int height;
+};
+
+inline bool operator==(const Dimensions& left, const Dimensions& right) { return left.width == right.width && left.height == right.height; }
+inline bool operator!=(const Dimensions& left, const Dimensions& right) { return !(left == right); }
+
 class FBO
 {
 public:
@@ -12,6 +24,7 @@ public:
 	void init(int width, int height);
 	void enable() const;
 	void disable() const;
+	Dimensions dimensions() const { return Dimensions(m_width, m_height); }
 
 private:
 	void free();
