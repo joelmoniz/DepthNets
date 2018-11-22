@@ -79,53 +79,56 @@ def all_exist(paths):
             return False
     return True
 
-def warp_all(dataset, results_destination, options):
+def warp_all(dataset, results_destination, options, server):
     processed_count = 0
     total_timer = Timer()
+
+    if server is None:
+        restart_server = True
+    else:
+        restart_server = False
+
+    server_handle = server
+        
     for i, fileID in enumerate(dataset.identity_iterator()):
 
-        with fwc.Server(options.server_exec) as server:
-        
-            print(fileID)
+        if restart_server:
+            server_handle = fwc.Server(options.server_exec)
+            server_handle.__enter__()
 
-            if i < options.start_index:
-                continue
+        if i < options.start_index:
+            continue
 
-            if options.img_override is not None:
-                image = options.img_override
-            else:
-                image = dataset.source_filepath(fileID)
-            keypoints = dataset.keypoints_filepath(fileID)
-            depth = dataset.depth_filepath(fileID)
+        if options.img_override is not None:
+            image = options.img_override
+        else:
+            image = dataset.source_filepath(fileID)
+        keypoints = dataset.keypoints_filepath(fileID)
+        depth = dataset.depth_filepath(fileID)
 
-            if options.identity :
-                affine = dataset.affine_identity_filepath()
-            else:
-                affine = dataset.affine_filepath(fileID)
+        if options.identity :
+            affine = dataset.affine_identity_filepath()
+        else:
+            affine = dataset.affine_filepath(fileID)
 
+        result = results_destination.result_filepath(fileID)
 
-            result = results_destination.result_filepath(fileID)
+        folders_to_check = [keypoints, depth, affine]
+        if options.img_override is None:
+            folders_to_check.append(image)
+        if not all_exist(folders_to_check):
+            print("Skipping : %s" % (fileID,))
+            continue
 
-            print(image)
-            print(keypoints)
-            print(depth)
-            print(affine)
+        if i % 1000 == 0 and i > 0:
+            delta = total_timer.time()
+            print(i, "(avg : {:.1f} faces/s)".format(i / delta))
 
-            #import sys
-            #sys.exit(0)
+        server_handle.send_command(
+            fwc.build_command(image, keypoints, depth, affine, result))
 
-            folders_to_check = [keypoints, depth, affine]
-            if options.img_override is None:
-                folders_to_check.append(image)
-            if not all_exist(folders_to_check):
-                print("Skipping : %s" % (fileID,))
-                continue
-
-            if i % 1000 == 0 and i > 0:
-                delta = total_timer.time()
-                print(i, "(avg : {:.1f} faces/s)".format(i / delta))
-
-            server.send_command(fwc.build_command(image, keypoints, depth, affine, result))
+        if restart_server:
+            server_handle.__exit__()
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -136,6 +139,9 @@ def parse_args():
     parser.add_argument('--start_index', type=int, default=0, help='Index of the first image to warp in the dataset.')
     parser.add_argument('--img_override', type=str, default=None, help='If set, use this specified image instead of those in the source folder')
     parser.add_argument('--use_dir', type=str, help='If set, find file ids using the specified folder, instead of source')
+    parser.add_argument('--variable_image_size', action='store_true',
+                        help='If set, re-start the server each time an image is processed. This is somewhat ' +
+                        'of a hack, since FaceWarper assumes that all source images are of the same size.')
     args = parser.parse_args()
     return args
 
@@ -144,8 +150,11 @@ def main():
     affine_identity_filepath = test_create_affine_identity_file()
     dataset = Dataset(options.dataset_path, affine_identity_filepath, options.use_dir)
     results_destination = ResultsDestination(options.results)
-    #with fwc.Server(options.server_exec) as server:
-    warp_all(dataset, results_destination, options)
+    if not options.variable_image_size:
+        with fwc.Server(options.server_exec) as server:
+            warp_all(dataset, results_destination, options, server)
+    else:
+        warp_all(dataset, results_destination, options, None)
 
 if __name__ == '__main__':
     main()
