@@ -112,7 +112,8 @@ def measure_depth(net, grid=True, dump_file=None, mode='test'):
         all_all = fn(xy_keypts, z_keypts,
                      xy_keypts, z_keypts,
                      same=True, dump_file=dump_file)
-        print( all_all['covar'] )
+        print("DepthCorr:")
+        print(all_all['covar'])
 
     else:
 
@@ -145,6 +146,7 @@ def measure_depth(net, grid=True, dump_file=None, mode='test'):
                             same=dir1==dir2)
                 results[dir1][dir2] = result
 
+        print("DepthCorr:")
         print("\t%s\t\t%s\t\t%s" % ("left", "center", "right"))
         print("left\t%f\t%f\t%f" % (results['left']['left']['covar'],
                                     results['left']['center']['covar'],
@@ -197,7 +199,7 @@ def measure_kp_error(net, grid=True, mode='test', use_gt_z=False):
         print("src: all, tgt: all")
         all_all = fn(xy_keypts, z_keypts,
                      xy_keypts, z_keypts, same=True)
-        print(np.mean(all_all), np.std(all_all))
+        print("kp error:", np.mean(all_all), " +/- ", np.std(all_all))
 
     else:
 
@@ -228,7 +230,7 @@ def measure_kp_error(net, grid=True, mode='test', use_gt_z=False):
                 result = fn(dd[dir1]['xy'], dd[dir1]['z'],
                             dd[dir2]['xy'], dd[dir2]['z'],
                             same=dir1==dir2)
-                print(np.mean(result), " +/- ", np.std(result))
+                print("kp error:", np.mean(result), " +/- ", np.std(result))
 
 
 def read_input(src_kpts_file,
@@ -328,7 +330,7 @@ def warp_to_rotated_target_face(net,
                                 norm_std=0.,
                                 frame_multiplier=100.,
                                 kpt_file_separator=',',
-                                rotate_affine=False):
+                                rotate_source=False):
     """
     Warp a source face to a continually rotated target face.
     For each rotation performed on the target face, we estimate
@@ -367,7 +369,7 @@ def warp_to_rotated_target_face(net,
     frame_multiplier: a multiplier for the number of rotations we do
       when we go from 0 to `tgt_angle_1` (or `tgt_angle_1` to `tgt_angle_2`).
     kpt_file_separator:
-    rotate_affine: if `True`, then we do not warp the source
+    rotate_source: if `True`, then we do not warp the source
       face to the target rotations. Instead, we rotate the
       source face directly by manually constructing an
       affine matrix which encodes the desired rotation
@@ -388,8 +390,8 @@ def warp_to_rotated_target_face(net,
         if not os.path.exists("%s/%s" % (output_dir, folder)):
             os.makedirs("%s/%s" % (output_dir, folder))
 
-    if rotate_affine:
-        print("NOTE: rotate_affine enabled. This means that the " +
+    if rotate_source:
+        print("NOTE: rotate_source enabled. This means that the " +
               "arguments `depth_const`, `norm_mean`, and `norm_std` " +
               "have no effect")
 
@@ -437,7 +439,7 @@ def warp_to_rotated_target_face(net,
 
     for k in range(len(degs)):
 
-        if not rotate_affine:
+        if not rotate_source:
         
             # Run the rotation matix on the target keypoints.
             result = np.dot(rot_matrix(degs[k]),
@@ -459,9 +461,10 @@ def warp_to_rotated_target_face(net,
             ax.invert_xaxis()
             ax.invert_yaxis()
             ax.invert_zaxis()
-            ax.set_xlim(0.5, -0.5)
-            ax.set_ylim(0.5, -0.5)
-            ax.set_zlim(0.5, -0.5)
+            #bounds = 3.0
+            #ax.set_xlim(bounds, -bounds)
+            #ax.set_ylim(bounds, -bounds)
+            #ax.set_zlim(bounds, -bounds)
             fig.savefig("%s/plot_target/%06d.png" % (output_dir, k))
             plt.close(fig)
 

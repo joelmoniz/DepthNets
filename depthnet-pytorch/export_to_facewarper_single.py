@@ -66,4 +66,4 @@ warp_to_target_face(net,
                     output_size=output_size,
                     kpt_file_separator=args.kpt_file_separator,
                     basename_prefix='tgt',
-                    plot_warp=True)
+                    save_plots=True)

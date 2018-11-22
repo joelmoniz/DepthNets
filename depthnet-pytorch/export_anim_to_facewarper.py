@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument('--scale_depth', type=float, default=100.,
                         help="Scale the depth by this constant. If this is == 0, " +
                         "then the depths are scaled so that they are in range [0,1].")
-    parser.add_argument('--rotate_affine', action='store_true',
+    parser.add_argument('--rotate_source', action='store_true',
                         help="If set, we do not warp the source face to target. Instead, " +
                         "we rotate the source directly (after estimating its depth based " +
                         "on a target face), and manually construct affines to perform the rotation.")
@@ -98,6 +98,6 @@ warp_to_rotated_target_face(
     norm_mean=args.norm_mean,
     norm_std=args.norm_std,
     scale_depth=args.scale_depth,
-    rotate_affine=args.rotate_affine,
+    rotate_source=args.rotate_source,
     kpt_file_separator=args.kpt_file_separator
 )
