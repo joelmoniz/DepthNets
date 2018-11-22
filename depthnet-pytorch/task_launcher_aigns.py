@@ -1,10 +1,12 @@
-import imp
+#import imp
+from importlib import import_module
 import glob
 import os
 import argparse
 from aigns import (AIGN,
                    save_handler)
-import interactive_aigns
+from interactive_aigns import (measure_depth,
+                               measure_kp_error)
 
 '''
 Process arguments.
@@ -18,10 +20,15 @@ def parse_args():
     parser.add_argument('--beta1', type=float, default=0.5)
     parser.add_argument('--beta2', type=float, default=0.999)
     parser.add_argument('--lamb', type=float, default=10.)
+    parser.add_argument('--dnorm', type=float, default=0.)
     # Iterator returns (it_train_a, it_train_b, it_val_a, it_val_b)
     parser.add_argument('--iterator', type=str, default="iterators/mnist.py")
     parser.add_argument('--resume', type=str, default=None)
-    parser.add_argument('--interactive', type=str, default=None)
+    spec = parser.add_mutually_exclusive_group()
+    spec.add_argument('--interactive', action='store_true')
+    spec.add_argument('--compute_stats', action='store_true')
+    spec.add_argument('--dump_depths', type=str)
+    parser.add_argument('--update_g_every', type=int, default=1)
     parser.add_argument('--network', type=str, default="networks/mnist.py")
     parser.add_argument('--save_path', type=str, default='./results_aigns')
     parser.add_argument('--save_images_every', type=int, default=100)
@@ -31,13 +38,15 @@ def parse_args():
     return args
 
 args = parse_args()
-if args.interactive is not None:
-    assert args.interactive in ['r2', 'non_model', 'free']
 # Dynamically load network module.
-net_module = imp.load_source('network', args.network)
+#net_module = imp.load_source('network', args.network)
+net_module = import_module(args.network.replace("/", ".").\
+                    replace(".py", ""))
 gen_fn, disc_fn = getattr(net_module, 'get_network')()
 # Dynamically load iterator module.
-itr_module = imp.load_source('iterator', args.iterator)
+#itr_module = imp.load_source('iterator', args.iterator)
+itr_module = import_module(args.iterator.replace("/", ".").\
+                    replace(".py", ""))
 itr_train, itr_val = getattr(itr_module, 'get_iterators')(args.batch_size)
 
 gan_class = AIGN
@@ -47,6 +56,8 @@ gan_kwargs = {
     'opt_d_args': {'lr': args.lr, 'betas': (args.beta1, args.beta2)},
     'opt_g_args': {'lr': args.lr, 'betas': (args.beta1, args.beta2)},
     'lamb': args.lamb,
+    'dnorm': args.dnorm,
+    'update_g_every': args.update_g_every,
     'handlers': [save_handler("%s/%s" % (args.save_path, args.name))],
     'use_cuda': False if args.cpu else True
 }
@@ -71,23 +82,20 @@ if args.resume is not None:
     else:
         print("Loading model: %s" % args.resume)
         net.load(args.resume)
-if args.interactive is not None:
-    '''
-    if args.interactive == 'r2':
-        # Basically compute the R2 over
-        # the entire validation set.
-        #process_data_one_sweep("tmp/test.csv")
-        interactive.measure_pearson_one_sweep(net)
-    elif args.interactive == 'non_model':
-        # Evaluate the non-model on the valid set.
-        net.eval_on_iterator(itr_val_zipped, use_gt_z=True)
-    else:
-        import pdb; pdb.set_trace()
-        #interactive.measure_pearson_test_pairwise(net)
-    '''
+if args.interactive:
     import pdb
     pdb.set_trace()
-        
+elif args.compute_stats:
+    print("Computing stats on validation set...")
+    measure_depth(net, grid=False, mode='valid')
+    measure_kp_error(net, grid=False, mode='valid')
+    print("Computing stats on test set...")
+    measure_depth(net, grid=True, mode='test')
+    measure_kp_error(net, grid=False, mode='test')
+elif args.dump_depths is not None:
+    print("Dumping depths to file: %s" % args.dump_depths)
+    measure_depth(net, grid=False, mode='test',
+                  dump_file=args.dump_depths)
 else:
     net.train(
         itr_train=itr_train,

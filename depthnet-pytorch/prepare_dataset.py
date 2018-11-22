@@ -1,27 +1,13 @@
-from util import get_data_from_id
+from util import (get_data_from_id,
+                  read_kpt_file)
 import glob
 import os
 import numpy as np
-from skimage.io import imread, imsave
+from skimage.io import (imread,
+                        imsave)
+from skimage.transform import resize
 
 root_dir = os.environ['DIR_3DFAW']
-
-'''
-def test():
-    img_downsized, y_keypts, z_keypts, x_keypts = get_data_from_id(
-        root=root_dir, id_=ids[0])
-    for i in range(len(y_keypts)):
-        x_kp, y_kp = int(y_keypts[i][0]*128), int(y_keypts[i][1]*128)
-        img_downsized[y_kp, x_kp] += 1.0
-    img_downsized = np.clip(img_downsized, 0, 1)
-    imsave(arr=img_downsized, fname="tmp/face.png")
-
-    fm = np.zeros((128,128))
-    for i in range(len(x_keypts)):
-        fm += x_keypts[i]
-    imsave(arr=fm, fname="tmp/fm.png")
-    print(x_keypts.sum())
-'''
 
 def prepare_train():
     ids = glob.glob("%s/train_img/*.jpg" % root_dir)
@@ -77,8 +63,23 @@ def prepare_test():
              z_keypts=z_keypts,
              ids=ids,
              orientations=orientations)
+
+def prepare_valid_imgs_downsized():
+    ids = glob.glob("%s/valid_img/*.jpg" % root_dir)
+    ids = [os.path.basename(id_).replace(".jpg","") for id_ in ids]
+    output_folder = "%s/valid_img_cropped_80x80" % root_dir
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    for id_ in ids:
+        kpts = read_kpt_file("%s/valid_lm/%s_lm.csv" % (root_dir, id_))
+        img = imread("%s/valid_img/%s.jpg" % (root_dir, id_))
+        img = img[ int(np.min(kpts[:,1])):int(np.max(kpts[:,1])),
+                   int(np.min(kpts[:,0])):int(np.max(kpts[:,0]))]
+        img = resize(img, (80, 80))
+        imsave(arr=img, fname="%s/%s.jpg" % (output_folder, id_))
     
-if __name__ == '___main__':
+if __name__ == '__main__':
     prepare_train()
     prepare_valid()
     prepare_test()
+    prepare_valid_imgs_downsized()

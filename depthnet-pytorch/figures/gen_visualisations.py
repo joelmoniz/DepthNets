@@ -1,17 +1,31 @@
-import sys
-import os
-import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 plt.rcParams['image.cmap'] = 'jet'
 #plt.rcParams['image.cmap'] = 'rainbow'
 from mpl_toolkits.mplot3d import Axes3D
+import sys
+import os
+import numpy as np
+import argparse
 from skimage.io import imread
 
 if "DIR_3DFAW" not in os.environ:
     raise Exception("DIR_3DFAW env variable not found -- source env.sh")
 DATA_DIR = os.environ["DIR_3DFAW"]
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="")
+    parser.add_argument('--depthnet_npz', type=str,
+                        default="../tmp/depthnet_no_gan.npz")
+    parser.add_argument('--depthnet_gan_npz', type=str,
+                        default="../tmp/depthnet_with_gan.npz")
+    parser.add_argument('--aign_npz', type=str,
+                        default="../tmp/aigns.npz")
+    args = parser.parse_args()
+    return args
+
+args = parse_args()
 
 # Test set.
 TEST_SET = "%s/test.npz" % DATA_DIR
@@ -21,18 +35,25 @@ test_z = test_set['z_keypts']
 test_set_ids = test_set['ids']
 
 # DepthNet.
-DN = "../tmp/exp1_lamb1_sd5_nogan_sigma0.05.npz"
-dn = np.load(DN)
-dn_preds = dn['preds']
+dn_preds = []
+for filename in args.depthnet_npz.split(","):
+    dn = np.load(filename)['preds']
+    dn_preds.append(dn)
+dn_preds = sum(dn_preds) / len(args.depthnet_npz.split(","))
 
 # DepthNet with GAN.
-DN_GAN = "../tmp/exp1_lamb1_sd5_wgan_dnorm0.1_learnm.npz"
-dn_gan = np.load(DN_GAN)
-dn_gan_preds = dn_gan['preds']
+dn_gan_preds = []
+for filename in args.depthnet_gan_npz.split(","):
+    dn_gan = np.load(filename)['preds']
+    dn_gan_preds.append(dn_gan)
+dn_gan_preds = sum(dn_gan_preds) / len(args.depthnet_gan_npz.split(","))
 
-AIGN = "../tmp/aigns.npz"
-aign = np.load(AIGN)
-aign_preds = aign['preds']
+# AIGNs.
+aign_preds = []
+for filename in args.aign_npz.split(","):
+    aign = np.load(filename)['preds']
+    aign_preds.append(aign)
+aign_preds = sum(aign_preds) / len(args.aign_npz.split(","))
 
 # MOFA.
 MOFA = "%s/mofa.npz" % DATA_DIR
@@ -152,14 +173,14 @@ def vis(c, rnd_seed=0, out_file=None):
         plt.show()
     plt.close(fig)
 
-out_folder = "tmp/output"
+out_folder = "output"
 if not os.path.exists(out_folder):
     os.makedirs(out_folder)
 
 ###########################
 # Generate the depth rows #
 ###########################
-    
+
 for i in range(len(test_z)):
     print(i)
     vis(i, out_file="%s/%i.png" % (out_folder, i))
@@ -183,8 +204,8 @@ plt.hexbin(
 plt.xlabel("actual z")
 plt.ylabel("pred z")
 plt.title('DepthNet')
-plt.ylim(ymin=-50, ymax=80)
-plt.xlim(xmin=-0.2, xmax=0.3)
+plt.ylim(ymin=-3, ymax=4)
+plt.xlim(xmin=-0.2, xmax=0.2)
 plt.tight_layout()
 plt.savefig("%s/heatmap_dn.png" % out_folder)
 # GAN + DEPTHNET
@@ -210,8 +231,8 @@ plt.hexbin(test_z.flatten(), aign_preds.flatten())
 plt.xlabel("actual z")
 plt.ylabel("pred z")
 plt.title('AIGN')
-plt.ylim(ymin=aign_preds.min(), ymax=2)
-plt.xlim(xmin=-0.2, xmax=0.2)
+#plt.ylim(ymin=aign_preds.min(), ymax=2)
+#plt.xlim(xmin=-0.2, xmax=0.2)
 plt.tight_layout()
 plt.savefig("%s/heatmap_aign.png" % out_folder)
 # MOFA

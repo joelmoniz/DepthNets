@@ -1,7 +1,7 @@
 #!/bin/bash
 
-source activate pytorch-env-py36
 cd ..
+source env.sh
 NAME=exp1_lamb1_sd5_wgan_dnorm0.1_learnm
 python task_launcher_depthnet.py \
 --name=${NAME} \
@@ -13,4 +13,5 @@ python task_launcher_depthnet.py \
 --lamb=1.0 \
 --cpu \
 --dnorm=0.1 \
---learn_m
+--learn_m \
+--resume=auto

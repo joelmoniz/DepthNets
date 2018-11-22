@@ -4,7 +4,8 @@ import numpy as np
 # torch imports
 import torch
 import torch.optim as optim
-from torch.autograd import Variable
+from torch.autograd import (Variable,
+                            grad)
 # torchvision
 from collections import OrderedDict
 # matplotlib
@@ -163,6 +164,8 @@ class AIGN():
                  opt_d_args={'lr': 0.0002, 'betas': (0.5, 0.999)},
                  opt_g_args={'lr': 0.0002, 'betas': (0.5, 0.999)},
                  lamb=10.,
+                 dnorm=0.,
+                 update_g_every=1,
                  handlers=[],
                  scheduler_fn=None,
                  scheduler_args={},
@@ -171,10 +174,14 @@ class AIGN():
         if use_cuda == 'detect':
             use_cuda = True if torch.cuda.is_available() else False
         self.lamb = lamb
+        self.dnorm = dnorm
+        self.update_g_every = update_g_every
         self.g = g_fn
         self.d = d_fn
-        optim_g = opt_g(self.g.parameters(), **opt_g_args)
-        optim_d = opt_d(self.d.parameters(), **opt_d_args)
+        optim_g = opt_g( filter(lambda p: p.requires_grad,
+                                self.g.parameters()), **opt_g_args)
+        optim_d = opt_d( filter(lambda p: p.requires_grad,
+                                self.d.parameters()), **opt_d_args)
         self.optim = {
             'g': optim_g,
             'd': optim_d,
@@ -190,13 +197,13 @@ class AIGN():
             self.g.cuda()
             self.d.cuda()
 
-    def mse(self, prediction, target):
+    def bce(self, prediction, target):
         if not hasattr(target, '__len__'):
             target = torch.ones_like(prediction)*target
             if prediction.is_cuda:
                 target = target.cuda()
             target = Variable(target)
-        return torch.nn.MSELoss()(prediction, target)
+        return torch.nn.BCELoss()(prediction, target)
     
     def _train(self):
         self.g.train()
@@ -225,6 +232,19 @@ class AIGN():
             z_keypts = z_keypts.cuda()
         return X_keypts, y_keypts, z_keypts
 
+    def grad_norm(self, d_out, x):
+        ones = torch.ones(d_out.size())
+        if self.use_cuda:
+            ones = ones.cuda()
+        grad_wrt_x = grad(outputs=d_out, inputs=x,
+                          grad_outputs=ones,
+                          create_graph=True,
+                          retain_graph=True,
+                          only_inputs=True)[0]
+        g_norm = (grad_wrt_x.view(
+            grad_wrt_x.size()[0], -1).norm(2, 1)** 2).mean()
+        return g_norm
+    
     def train_on_instance(self, X_keypts, y_keypts, z_keypts, **kwargs):
         """Train the network on a single example"""
         self._train()
@@ -242,7 +262,7 @@ class AIGN():
         x_3d = params_to_3d(pred_params, self.use_cuda)
         # Ok, try and fool the discriminator into thinking
         # this is real.
-        g_loss = self.mse(self.d(x_3d), 1)
+        g_loss = self.bce(self.d(x_3d), 1)
         # Ok, project back into 2D.
         x_2d_proj = project_3d_to_2d(
             pred_params, x_3d, self.use_cuda)
@@ -250,17 +270,26 @@ class AIGN():
         # and the actual 2d.
         l1_loss = torch.mean(torch.abs(x_2d_proj - y_keypts_t))
         g_tot_loss = g_loss + self.lamb*l1_loss
-        g_tot_loss.backward()
-        self.optim['g'].step()
+        if (kwargs['iter']-1) % self.update_g_every == 0:
+            g_tot_loss.backward()
+            self.optim['g'].step()
         # Ok, now do the discriminator.
         # We need to concatenate the true y and true z
         self.optim['d'].zero_grad()
-        d_loss_fake = self.mse(self.d(x_3d.detach()), 0)
-        d_loss_real = self.mse(self.d(gt_3d_keypts), 1)
+        d_loss_fake = self.bce(self.d(x_3d.detach()), 0)
+        d_loss_real = self.bce(self.d(gt_3d_keypts), 1)
         d_loss = d_loss_fake + d_loss_real
         d_loss.backward()
         self.optim['d'].step()
-
+        # Ok, now do gradient penalty.
+        if self.dnorm > 0.:
+            gt_3d_keypts.requires_grad = True
+            d_real_ = self.d(gt_3d_keypts)
+            g_norm_x = self.grad_norm(
+                d_real_, gt_3d_keypts)
+            self.optim['d'].zero_grad()
+            (g_norm_x*self.dnorm).backward()
+            self.optim['d'].step()
         losses = {
             'g_loss': g_loss.data.item(),
             'l1_loss': l1_loss.data.item(),
@@ -284,7 +313,7 @@ class AIGN():
             x_3d = params_to_3d(pred_params, self.use_cuda)
             # Ok, try and fool the discriminator into thinking
             # this is real.
-            g_loss = self.mse(self.d(x_3d), 1)
+            g_loss = -torch.mean(self.d(x_3d))
             # Ok, project back into 2D.
             x_2d_proj = project_3d_to_2d(
                 pred_params, x_3d, self.use_cuda)
@@ -295,8 +324,8 @@ class AIGN():
             g_tot_loss = g_loss + self.lamb*l1_loss
             # Ok, now do the discriminator.
             # We need to concatenate the true y and true z
-            d_loss_fake = self.mse(self.d(x_3d.detach()), 0)
-            d_loss_real = self.mse(self.d(gt_3d_keypts), 1)
+            d_loss_fake = torch.mean(self.d(x_3d.detach()))
+            d_loss_real = -torch.mean(self.d(gt_3d_keypts))
             d_loss = d_loss_fake + d_loss_real
         losses = {
             'g_loss': g_loss.data.item(),
@@ -326,7 +355,6 @@ class AIGN():
               epochs,
               model_dir,
               result_dir,
-              append=False,
               save_every=1,
               scheduler_fn=None,
               scheduler_args={},
@@ -334,7 +362,10 @@ class AIGN():
         for folder_name in [model_dir, result_dir]:
             if folder_name is not None and not os.path.exists(folder_name):
                 os.makedirs(folder_name)
-        f_mode = 'w' if not append else 'a'
+        if os.path.exists("%s/results.txt" % result_dir):
+            f_mode = 'a'
+        else:
+            f_mode = 'w'
         f = None
         if result_dir is not None:
             f = open("%s/results.txt" % result_dir, f_mode)
@@ -396,8 +427,7 @@ class AIGN():
             str_ = ",".join([str(all_dict[key]) for key in all_dict])
             print(str_)
             if f is not None:
-                if (epoch+1) == 1 and not append:
-                    # If we're not resuming, then write the header.
+                if (epoch+1) == 1:
                     f.write(",".join(all_dict.keys()) + "\n")
                 f.write(str_ + "\n")
                 f.flush()
