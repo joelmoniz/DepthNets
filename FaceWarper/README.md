@@ -15,7 +15,7 @@ Then, with the results obtained from running DepthNet (affine transforms, 2D key
 
 ![FaceWarper usage overview](https://user-images.githubusercontent.com/627828/47393012-5450af80-d6ec-11e8-9fdf-58b37eb8749a.png)
 
-Run "warp_dataset.py" as follows:
+To warp faces run "warp_dataset.py" as follows:
 
 ```
 python warp_dataset.py --results "/path/to/results" --server_exec "./FaceWarperServer/build/FaceWarperServer" "/path/to/dataset"
