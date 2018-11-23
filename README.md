@@ -22,3 +22,7 @@ This contains code to run the experiments detailed in section 3.3 ("Face rotatio
 
 <img src="https://user-images.githubusercontent.com/2417792/46300959-ff999900-c572-11e8-847f-bdf7fa5025ee.png" width=500 />
 <img src="https://user-images.githubusercontent.com/2417792/46300240-34a4ec00-c571-11e8-8051-714e1a9baeca.png" width=500 /> 
+
+## Disclaimer
+
+We have identified that the work we have presented has the potential to be applied in a manner which could be controversial (for example, see [Deepfakes](https://en.wikipedia.org/wiki/Deepfake)). We do not in any manner endorse the use of this code in malicious or deceptful applications. Please use this code responsibly!
