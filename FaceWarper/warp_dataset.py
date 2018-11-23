@@ -20,12 +20,16 @@ class Timer:
         return time.perf_counter() - self._start_time
 
 class Dataset:
-    def __init__(self, dataset_dir, affine_identity_path):
+    def __init__(self, dataset_dir, affine_identity_path, use_dir=None):
         self._dataset_dir = dataset_dir
         self._affine_identity_path = affine_identity_path
+        if use_dir is not None:
+            self.use_folder = use_dir
+        else:
+            self.use_folder = "source"
 
     def identity_iterator(self):
-    	for f in os.listdir(os.path.join(self._dataset_dir, "source")):
+    	for f in os.listdir(os.path.join(self._dataset_dir, self.use_folder)):
     		yield extract_identity(f)
 
     def source_filepath(self, fileID):
@@ -75,14 +79,18 @@ def all_exist(paths):
             return False
     return True
 
-def warp_all(server, dataset, results_destination, options):
+def warp_all(dataset, results_destination, options, server):
     processed_count = 0
     total_timer = Timer()
     for i, fileID in enumerate(dataset.identity_iterator()):
+
         if i < options.start_index:
             continue
 
-        image = dataset.source_filepath(fileID)
+        if options.img_override is not None:
+            image = options.img_override
+        else:
+            image = dataset.source_filepath(fileID)
         keypoints = dataset.keypoints_filepath(fileID)
         depth = dataset.depth_filepath(fileID)
 
@@ -92,9 +100,15 @@ def warp_all(server, dataset, results_destination, options):
             affine = dataset.affine_filepath(fileID)
 
         result = results_destination.result_filepath(fileID)
- 
-        if not all_exist([image, keypoints, depth, affine]):
-            print("Skipping : %s" % (fileID,))
+
+        print("Processing: image=%s, keypoints=%s, depth=%s, affine=%s" %
+              (image, keypoints, depth, affine))
+
+        folders_to_check = [keypoints, depth, affine]
+        if options.img_override is None:
+            folders_to_check.append(image)
+        if not all_exist(folders_to_check):
+            print("Skipping %s -- could not find either image/kpts/depth/affine" % (fileID,))
             continue
 
         if i % 1000 == 0 and i > 0:
@@ -110,16 +124,18 @@ def parse_args():
     parser.add_argument('--server_exec', default=None, help='Path to the server executable. If not set, the program assumes the server executable is named FaceWarperServer and is locating in system PATH.')
     parser.add_argument('--identity', action='store_true', help='Use identity affine transform.')
     parser.add_argument('--start_index', type=int, default=0, help='Index of the first image to warp in the dataset.')
+    parser.add_argument('--img_override', type=str, default=None, help='If set, use this specified image instead of those in the source folder')
+    parser.add_argument('--use_dir', type=str, help='If set, find file ids using the specified folder, instead of source')
     args = parser.parse_args()
     return args
 
 def main():
     options = parse_args()
     affine_identity_filepath = test_create_affine_identity_file()
-    dataset = Dataset(options.dataset_path, affine_identity_filepath)
+    dataset = Dataset(options.dataset_path, affine_identity_filepath, options.use_dir)
     results_destination = ResultsDestination(options.results)
     with fwc.Server(options.server_exec) as server:
-        warp_all(server, dataset, results_destination, options)
+        warp_all(dataset, results_destination, options, server)
 
 if __name__ == '__main__':
     main()
