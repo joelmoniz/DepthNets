@@ -12,8 +12,9 @@ conda env create -f=environment.yml -n depthnet
 
 ## How to run
 
-In order to get the data set up we will have to perform many steps. In the `data/` folder there are three folders: `celeba`, `celeba_faceswap`, and `vgg`, each containing their own `README.md` file on how to prepare the data. Before starting this
-process, one must compile the `FaceWarperServer` which is in the parent directory.
+To use this part you need to first perform the following steps: <br />
+1) Get date: In the `data/` folder there are three sub-folders: `celeba`, `celeba_faceswap`, and `vgg`, each containing their own `README.md` file on how to prepare the data. <br />
+2) Compile the `FaceWarperServer` which is in the parent directory.
 
 ### Cleaning up face swaps
 
@@ -41,13 +42,13 @@ You can find the pre-trained checkpoint for this [here](https://mega.nz/#!kPYBSS
 
 ### Background synthesis after face warp
 
-Since DepthNet only warps the region corresponding to the face, it would be useful to be able to resynthesize the outside region such as the background and hair. In this experiment, CycleGAN maps from the domain consisting of DepthNet frontalised face and the background of the original face to the domain of ground truth (CelebA) images:
+Since DepthNet only warps the region corresponding to the face, it would be useful to be able to resynthesize the outside region such as the background and hair. In this experiment, CycleGAN maps from the domain consisting of the DepthNet frontalised face and the background of the original face to the domain of ground truth (CelebA) frontal images:
 
 <p align="left">
   <img src="https://user-images.githubusercontent.com/2417792/46300959-ff999900-c572-11e8-847f-bdf7fa5025ee.png" width="400"/>
 </p>
 
-Some examples are shown below. (From left to right: source image, source image + keypts, frontalised face with DepthNet, CycleGAN combining (3) and background of (1))
+Some examples are shown below. (From left to right: source image, source image + keypoints, frontalised face with DepthNet, CycleGAN combining (3) and background of (2))
 
 ![image](https://user-images.githubusercontent.com/2417792/45967494-32381480-bffc-11e8-8002-d843ce926670.png)
 ![image](https://user-images.githubusercontent.com/2417792/45967500-349a6e80-bffc-11e8-9f07-bc4d9c2529a3.png)
