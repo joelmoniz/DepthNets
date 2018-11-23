@@ -48,7 +48,6 @@ class BaseModel():
               itr_a_train, itr_b_train,
               itr_a_valid, itr_b_valid,
               epochs, model_dir, result_dir,
-              append=False,
               save_every=1,
               scheduler_fn=None,
               scheduler_args={},
@@ -56,7 +55,10 @@ class BaseModel():
         for folder_name in [model_dir, result_dir]:
             if folder_name is not None and not os.path.exists(folder_name):
                 os.makedirs(folder_name)
-        f_mode = 'w' if not append else 'a'
+        if os.path.exists("%s/results.txt" % result_dir):
+            f_mode = 'a'
+        else:
+            f_mode = 'w'
         f = None
         if result_dir is not None:
             f = open("%s/results.txt" % result_dir, f_mode)
@@ -121,8 +123,9 @@ class BaseModel():
             str_ = ",".join([str(all_dict[key]) for key in all_dict])
             print(str_)
             if f is not None:
-                if (epoch+1) == 1 and not append:
-                    # If we're not resuming, then write the header.
+                if f_mode == 'w':
+                    # If we're writing this file for the first time,
+                    # then write a header.
                     f.write(",".join(all_dict.keys()) + "\n")
                 f.write(str_ + "\n")
                 f.flush()

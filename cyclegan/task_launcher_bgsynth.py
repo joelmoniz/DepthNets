@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 import argparse
+import os
+import glob
 from torch.utils.data import DataLoader
 from i2i.cyclegan import CycleGAN
 from skimage.transform import rescale
@@ -14,8 +16,7 @@ from util import (convert_to_rgb,
 from importlib import import_module
 
 VALID_DATASETS = ['depthnet_bg_vs_frontal',
-                  'gt_vs_frontal_gt',
-                  'depthnet_gt_vs_frontal']
+                  'depthnet_bg_vs_all']
 
 #####################
 # UTILITY FUNCTIONS #
@@ -95,6 +96,31 @@ def get_depthnet_bg_iterators_h5(bs):
     loader_b_valid = DataLoader(combined_b_valid, batch_size=bs, shuffle=True)
     return loader_a_train, loader_b_train, loader_a_valid, loader_b_valid
 
+def get_depthnet_bg_iterators_all_h5(bs):
+    """DepthNet + background <-> frontal GT faces"""
+    filename_celeba = "data/celeba/celebA.h5"
+    filename_celeba_depthnet = "data/celeba/celeba_depthnet_and_bg.h5"
+    ## CELEBA ##
+    celeba_a_train = H5Dataset('%s' % filename_celeba_depthnet, 'imgs', train=True)
+    celeba_b_train = ConcatDataset((
+        H5Dataset('%s' % filename_celeba, 'tg_GT', train=True),
+        H5Dataset('%s' % filename_celeba, 'src_GT', train=True))
+    )
+    ## COMBINED ##
+    loader_a_train = DataLoader(celeba_a_train, batch_size=bs, shuffle=True)
+    loader_b_train = DataLoader(celeba_b_train, batch_size=bs, shuffle=True)
+    ## CELEBA ##
+    celeba_a_valid = H5Dataset('%s' % filename_celeba_depthnet, 'imgs', train=False)
+    celeba_b_valid = ConcatDataset((
+        H5Dataset('%s' % filename_celeba, 'tg_GT', train=False),
+        H5Dataset('%s' % filename_celeba, 'src_GT', train=False))
+    )
+    ## COMBINED ##
+    loader_a_valid = DataLoader(celeba_a_valid, batch_size=bs, shuffle=True)
+    loader_b_valid = DataLoader(celeba_b_valid, batch_size=bs, shuffle=True)
+    return loader_a_train, loader_b_train, loader_a_valid, loader_b_valid
+
+
 ##############
 # MAIN STUFF #
 ##############
@@ -138,13 +164,16 @@ if __name__ == '__main__':
         if name == 'depthnet_bg_vs_frontal':
             it_train_a, it_train_b, it_valid_a, it_valid_b = \
                 get_depthnet_bg_iterators_h5(bs)
+        elif name == 'depthnet_bg_vs_all':
+            it_train_a, it_train_b, it_valid_a, it_valid_b = \
+                get_depthnet_bg_iterators_all_h5(bs)
         else:
             raise Exception("%s is not a valid dataset" % name)
         return it_train_a, it_train_b, it_valid_a, it_valid_b
 
     it_train_a, it_train_b, it_valid_a, it_valid_b = \
         get_dataset(args.dataset, args.batch_size)
-
+    name = args.name
     net = CycleGAN(
         gen_atob_fn=gen_atob_fn,
         disc_a_fn=disc_a_fn,
@@ -156,7 +185,23 @@ if __name__ == '__main__':
         use_cuda='detect',
         beta=0.
     )
-
+    if args.resume is not None:
+        if args.resume == 'auto':
+            # autoresume
+            model_dir = "%s/%s" % (args.model_save_path, name)
+            # List all the pkl files.
+            files = glob.glob("%s/*.pkl" % model_dir)
+            # Make them absolute paths.
+            files = [ os.path.abspath(key) for key in files ]
+            if len(files) > 0:
+                # Get creation time and use that.
+                latest_model = max(files, key=os.path.getctime)
+                print("Auto-resume mode found latest model: %s" %
+                      latest_model)
+                net.load(latest_model)
+        else:
+            print("Loading model: %s" % args.resume)
+            net.load(args.resume)
     bs = args.batch_size
     if args.mode == "train":
         net.train(

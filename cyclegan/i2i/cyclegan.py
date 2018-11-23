@@ -41,6 +41,7 @@ class CycleGAN(BaseModel):
                  opt_d=optim.Adam,
                  opt_d_args={'lr': 0.0002, 'betas': (0.5, 0.999)},
                  opt_g_args={'lr': 0.0002, 'betas': (0.5, 0.999)},
+                 loss='mse',
                  lamb=10.,
                  beta=5.,
                  dnorm=None,
@@ -58,13 +59,17 @@ class CycleGAN(BaseModel):
         self.g_btoa = gen_btoa_fn
         self.d_a = disc_a_fn
         self.d_b = disc_b_fn
+        if loss == 'mse':
+            self.loss = self.mse
+        elif loss == 'bce':
+            self.loss = self.bce
         optim_g = opt_g(
             itertools.chain(
                 self.g_atob.parameters(),
                 self.g_btoa.parameters()),
             **opt_g_args)
-        optim_d_a = opt_d(self.d_a.parameters(), **opt_d_args)
-        optim_d_b = opt_d(self.d_b.parameters(), **opt_d_args)
+        optim_d_a = opt_d(filter(lambda p: p.requires_grad, self.d_a.parameters()), **opt_d_args)
+        optim_d_b = opt_d(filter(lambda p: p.requires_grad, self.d_b.parameters()), **opt_d_args)
         self.optim = {
             'g': optim_g,
             'd_a': optim_d_a,
@@ -88,18 +93,24 @@ class CycleGAN(BaseModel):
             target = torch.ones_like(prediction)*target
             if prediction.is_cuda:
                 target = target.cuda()
-            target = Variable(target)
         return torch.nn.MSELoss()(prediction, target)
+
+    def bce(self, prediction, target):
+        if not hasattr(target, '__len__'):
+            target = torch.ones_like(prediction)*target
+            if prediction.is_cuda:
+                target = target.cuda()
+        return torch.nn.BCELoss()(prediction, target)
 
     def compute_g_losses_aba(self, A_real, atob, atob_btoa):
         """Return all the losses related to generation"""
-        atob_gen_loss = self.mse(self.d_b(atob), 1)
+        atob_gen_loss = self.loss(self.d_b(atob), 1)
         cycle_aba = torch.mean(torch.abs(A_real - atob_btoa))
         return atob_gen_loss, cycle_aba
 
     def compute_g_losses_bab(self, B_real, btoa, btoa_atob):
         """Return all the losses related to generation"""
-        btoa_gen_loss = self.mse(self.d_a(btoa), 1)
+        btoa_gen_loss = self.loss(self.d_a(btoa), 1)
         cycle_bab = torch.mean(torch.abs(B_real - btoa_atob))
         return btoa_gen_loss, cycle_bab
 
@@ -109,10 +120,10 @@ class CycleGAN(BaseModel):
         fake_b = atob.detach()
         d_a_fake = self.d_a(fake_a)
         d_b_fake = self.d_b(fake_b)
-        d_a_loss = 0.5*(self.mse(self.d_a(A_real), 1) +
-                        self.mse(d_a_fake, 0))
-        d_b_loss = 0.5*(self.mse(self.d_b(B_real), 1) +
-                        self.mse(d_b_fake, 0))
+        d_a_loss = 0.5*(self.loss(self.d_a(A_real), 1) +
+                        self.loss(d_a_fake, 0))
+        d_b_loss = 0.5*(self.loss(self.d_b(B_real), 1) +
+                        self.loss(d_b_fake, 0))
         return d_a_loss, d_b_loss
 
     def compute_d_norms(self, A_real_, B_real_):
@@ -196,8 +207,8 @@ class CycleGAN(BaseModel):
             'd_b': d_b_loss.item()
         }
         if self.beta > 0:
-            losses['cycle_id_a'] = cycle_id_a
-            losses['cycle_id_b'] = cycle_id_b
+            losses['cycle_id_a'] = cycle_id_a.item()
+            losses['cycle_id_b'] = cycle_id_b.item()
         if self.dnorm is not None and self.dnorm > 0.:
             losses['gp_a'] = gp_a.item()
             losses['gp_b'] = gp_b.item()
@@ -236,8 +247,8 @@ class CycleGAN(BaseModel):
             'd_b': d_b_loss.item()
         }
         if self.beta > 0:
-            losses['cycle_id_a'] = cycle_id_a
-            losses['cycle_id_b'] = cycle_id_b
+            losses['cycle_id_a'] = cycle_id_a.item()
+            losses['cycle_id_b'] = cycle_id_b.item()
         outputs = {
             'atob': atob.detach(),
             'atob_btoa': atob_btoa.detach(),

@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import glob
 import os
 import pickle
 import argparse
@@ -8,10 +9,12 @@ from torch.utils.data.dataset import (TensorDataset,
                                       ConcatDataset)
 from i2i.cyclegan import CycleGAN
 from util import (convert_to_rgb,
-                  H5Dataset)
+                  H5Dataset,
+                  DatasetFromFolder)
 from torchvision import transforms
 from skimage.io import imsave, imread
 from skimage.transform import rescale, resize
+from importlib import import_module
 
 def get_face_swap_iterators(bs):
     """DepthNet + GT <-> frontal GT faces"""
@@ -66,35 +69,42 @@ def image_dump_handler(out_folder, scale_factor=1.):
                fname="%s/%i_%s.png" % (out_folder, kwargs['epoch'], kwargs['mode']))
     return _fn
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="")
-    parser.add_argument('--name', type=str,
-                        default="my_experiment")
-    parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--mode', choices=['train', 'test', 'vis'],
-                        default='train')
-    parser.add_argument('--epochs', type=int, default=1000)
-    parser.add_argument('--lr', type=float, default=2e-4)
-    parser.add_argument('--beta1', type=float, default=0.5)
-    parser.add_argument('--beta2', type=float, default=0.999)
-    parser.add_argument('--resume', type=str, default=None)
-    parser.add_argument('--save_path', type=str,
-                        default='./results')
-    parser.add_argument('--model_save_path', type=str,
-                        default='./models')
-    parser.add_argument('--cpu', action='store_true')
-    args = parser.parse_args()
-    return args
-
-args = parse_args()
-
 if __name__ == '__main__':
 
     from torchvision.utils import save_image
 
-    from architectures import block9_a3b3
+    def parse_args():
+        parser = argparse.ArgumentParser(description="")
+        parser.add_argument('--name', type=str,
+                            default="my_experiment")
+        parser.add_argument('--batch_size', type=int, default=32)
+        parser.add_argument('--network', type=str, default=None)
+        parser.add_argument('--mode', choices=['train', 'test', 'vis'],
+                            default='train')
+        parser.add_argument('--epochs', type=int, default=1000)
+        parser.add_argument('--loss', type=str, choices=['mse', 'bce'],
+                            default='mse')
+        parser.add_argument('--lamb', type=float, default=10.0)
+        parser.add_argument('--beta', type=float, default=0.0)
+        parser.add_argument('--lr', type=float, default=2e-4)
+        parser.add_argument('--beta1', type=float, default=0.5)
+        parser.add_argument('--beta2', type=float, default=0.999)
+        parser.add_argument('--resume', type=str, default=None)
+        parser.add_argument('--save_path', type=str,
+                            default='./results')
+        parser.add_argument('--model_save_path', type=str,
+                            default='./models')
+        parser.add_argument('--cpu', action='store_true')
+        args = parser.parse_args()
+        return args
 
-    gen_atob, disc_a, gen_btoa, disc_b = block9_a3b3.get_network()
+    args = parse_args()
+
+    # Dynamically load in the selected generator
+    # module.
+    mod = import_module(args.network.replace("/", ".").\
+                        replace(".py", ""))
+    gen_atob_fn, disc_a_fn, gen_btoa_fn, disc_b_fn = mod.get_network()
 
     print("Loading iterators...")
     it_train_a, it_train_b, it_valid_a, it_valid_b = \
@@ -103,18 +113,35 @@ if __name__ == '__main__':
     print("Loading CycleGAN...")
     name = args.name
     net = CycleGAN(
-        gen_atob_fn=gen_atob,
-        disc_a_fn=disc_a,
-        gen_btoa_fn=gen_btoa,
-        disc_b_fn=disc_b,
+        gen_atob_fn=gen_atob_fn,
+        disc_a_fn=disc_a_fn,
+        gen_btoa_fn=gen_btoa_fn,
+        disc_b_fn=disc_b_fn,
+        loss=args.loss,
+        lamb=args.lamb,
+        beta=args.beta,
         opt_d_args={'lr': args.lr, 'betas': (args.beta1, args.beta2)},
         opt_g_args={'lr': args.lr, 'betas': (args.beta1, args.beta2)},
         handlers=[image_dump_handler("%s/%s" % (args.save_path, name))],
         use_cuda=False if args.cpu else True
     )
     if args.resume is not None:
-        print("Loading checkpoint...")
-        net.load(args.resume)
+        if args.resume == 'auto':
+            # autoresume
+            model_dir = "%s/%s" % (args.model_save_path, name)
+            # List all the pkl files.
+            files = glob.glob("%s/*.pkl" % model_dir)
+            # Make them absolute paths.
+            files = [ os.path.abspath(key) for key in files ]
+            if len(files) > 0:
+                # Get creation time and use that.
+                latest_model = max(files, key=os.path.getctime)
+                print("Auto-resume mode found latest model: %s" %
+                      latest_model)
+                net.load(latest_model)
+        else:
+            print("Loading model: %s" % args.resume)
+            net.load(args.resume)
     if args.mode == "train":
         print("Training...")
         net.train(
@@ -124,8 +151,7 @@ if __name__ == '__main__':
             itr_b_valid=it_valid_b,
             epochs=args.epochs,
             model_dir="%s/%s" % (args.model_save_path, name),
-            result_dir="%s/%s" % (args.save_path, name),
-            append=True if args.resume is not None else False
+            result_dir="%s/%s" % (args.save_path, name)
         )
     elif args.mode == "vis":
         print("Converting A -> B...")
