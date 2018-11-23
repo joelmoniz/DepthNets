@@ -82,6 +82,7 @@ dependencies:
   - h5py==2.8.0
   - mkl-fft==1.0.4
   - mkl-random==1.0.1
+  - opencv-python==3.4.3.18
   - tifffile==0.13.5
   - torch==0.4.1.post2
   - tqdm==4.26.0
