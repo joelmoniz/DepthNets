@@ -6,14 +6,18 @@ If you are having issues with running the code, please do not hesitate to submit
 
 ## [DepthNets](depthnet-pytorch)
 
-<img src="depthnet-pytorch/figures/DepthNet_only_kpts.jpg" width=500 />
+<p align="left">
+  <img src="depthnet-pytorch/figures/DepthNet_only_kpts.jpg" width="500"/>
+</p>
 
 This contains code to run DepthNet, and in particular section 3.2 of the paper ("Evaluation on unpaired faces and comparison to other models").
 
 ## [FaceWarper](FaceWarper)
 Once you have trained a DepthNet model and wish to produce face warps, compile the [FaceWarper](FaceWarper) and then see section [Exporting to FaceWarper](https://github.com/joelmoniz/DepthNets/tree/master/depthnet-pytorch#exporting-to-facewarper).
 
-<img src="https://user-images.githubusercontent.com/627828/47393012-5450af80-d6ec-11e8-9fdf-58b37eb8749a.png" width=500 />
+<p align="left">
+  <img src="https://user-images.githubusercontent.com/627828/47393012-5450af80-d6ec-11e8-9fdf-58b37eb8749a.png" width="500"/>
+</p>
 
 This is the OpenGL pipeline used to produce face warps based on the depths and geometry output by DepthNet.
 
@@ -21,8 +25,16 @@ This is the OpenGL pipeline used to produce face warps based on the depths and g
 
 This contains code to run the experiments detailed in section 3.3 ("Face rotation, replacement, and adversarial repair"). Note that data preparation code here is dependent on the compilation of FaceWarper.
 
-<img src="https://user-images.githubusercontent.com/2417792/46300959-ff999900-c572-11e8-847f-bdf7fa5025ee.png" width=500 />
-<img src="https://user-images.githubusercontent.com/2417792/46300240-34a4ec00-c571-11e8-8051-714e1a9baeca.png" width=500 /> 
+
+**Background Synthesis:**
+<p align="left">
+  <img src="https://user-images.githubusercontent.com/2417792/46300959-ff999900-c572-11e8-847f-bdf7fa5025ee.png" width="400"/>
+</p>
+
+**Face Swap:**
+<p align="left">
+  <img src="https://user-images.githubusercontent.com/2417792/46300240-34a4ec00-c571-11e8-8051-714e1a9baeca.png" width="400"/>
+</p>
 
 ## Disclaimer
 
