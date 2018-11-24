@@ -13,7 +13,7 @@ conda env create -f=environment.yml -n depthnet
 ## How to run
 
 To use this part you need to first perform the following steps: <br />
-1) Get date: In the `data/` folder there are three sub-folders: `celeba`, `celeba_faceswap`, and `vgg`, each containing their own `README.md` file on how to prepare the data. <br />
+1) Get data: In the `data/` folder there are three sub-folders: `celeba`, `celeba_faceswap`, and `vgg`, each containing their own `README.md` file on how to prepare the data. <br />
 2) Compile the `FaceWarperServer` which is in the parent directory.
 
 ### Cleaning up face swaps
