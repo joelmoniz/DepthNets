@@ -1,5 +1,22 @@
 ## Unsupervised Depth Estimation, 3D Face Rotation and Replacement (NIPS 2018)
 
+**Face Rotation:**
+<p align="center">
+  <img src="images/Face_rotation_Camera_Sweep.jpg" width="500"/> <br />
+</p>
+
+**Face Frontalization with Background Synthesis:**
+<p align="center">
+  <img src="images/Face_Frontalization_with_bg_synthesis1.jpg" width="350" hspace="50"/>
+  <img src="images/Face_Frontalization_with_bg_synthesis2.jpg" width="350"/> 
+</p>
+
+**Face Replecement:**
+<p align="center">
+  <img src="images/Face_Swap_1.jpg" width="350" hspace="50"/> 
+  <img src="images/Face_Swap_2.jpg" width="350"/>
+</p>
+
 This repository is split up into multiple sections, each addressing a different task in the paper. Click on the corresponding headers to be taken to those sections in this repository. Each section has a README.md file detailing how to set everything up.
 
 If you are having issues with running the code, please do not hesitate to submit an issue.
