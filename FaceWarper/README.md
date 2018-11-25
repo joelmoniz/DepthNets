@@ -3,7 +3,7 @@
 FaceWarper is an OpenGL program that uses the results from DepthNet to apply a 3D affine transform (warp) to a source face image (shown on left) to rotate it to the target face geometry and pose (shown on top).
 
 <p align="center">
-  <img src="face_rotation_samples.jpg" width="800"/>
+  <img src="../images/Face_rotation_Camera_Sweep_2.jpg" width="700"/> <br />
 </p>
 
 FaceWarper uses a client-server architecture. The server, FaceWarperServer, is programed in C++11. A reference Python implementation of a client, FaceWarperClient, is provided. Finally, the Python script "warp_dataset.py" is provided to apply the 3D affine transforms inferred by DepthNet on a full dataset.
