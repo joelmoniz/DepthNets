@@ -1,4 +1,4 @@
-### Unsupervised Depth Estimation, 3D Face Rotation and Replacement (NeurIPS 2018) <br /> <br />
+## Unsupervised Depth Estimation, 3D Face Rotation and Replacement <br /> (NeurIPS 2018)  
 
 **Face Rotation:**
 <p align="center">
