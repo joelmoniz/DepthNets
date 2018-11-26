@@ -13,7 +13,9 @@ You first need to build FaceWarperServer in order to use it. Detailed instructio
 
 Then, with the results obtained from running DepthNet (affine transforms, 2D keypoints and depths), run the Python script "warp_dataset.py" to generate warped faces. The following figure gives an overview of how FaceWarper works. DepthNet previously found the face 2D keypoints and their depth in the source image, and computed the affine transform to warp the source image into the pose of the target image. The target itself is not used by FaceWarper, it is presented in the figure only to better understand the result.
 
-![FaceWarper usage overview](https://user-images.githubusercontent.com/627828/47393012-5450af80-d6ec-11e8-9fdf-58b37eb8749a.png)
+<p align="left">
+  <img src="../images/face_warper.jpg" width="600"/>
+</p>
 
 To warp faces run "warp_dataset.py" as follows:
 
