@@ -32,8 +32,9 @@ This contains code to run DepthNet, and in particular section 3.2 of the paper (
 ## [FaceWarper](FaceWarper)
 Once you have trained a DepthNet model and wish to produce face warps, compile the [FaceWarper](FaceWarper) and then see section [Exporting to FaceWarper](https://github.com/joelmoniz/DepthNets/tree/master/depthnet-pytorch#exporting-to-facewarper).
 
+
 <p align="left">
-  <img src="https://user-images.githubusercontent.com/627828/47393012-5450af80-d6ec-11e8-9fdf-58b37eb8749a.png" width="500"/>
+  <img src="images/face_warper.jpg" width="500"/>
 </p>
 
 This is the OpenGL pipeline used to produce face warps based on the depths and geometry output by DepthNet.
