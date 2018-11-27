@@ -87,8 +87,8 @@ Files inside ```affine```, ```depth```, ```keypoints``` and ```source``` are mat
 #### Affine transform file format
 There is one affine transform per file. The 2x4 matrix is encoded in the text file as follows:
 ```
-m1 m2 m3 m4
-m5 m6 m7 m8
+m1 m2 m3 tx
+m4 m5 m6 ty
 ```
 All values are floating point.
 
