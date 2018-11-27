@@ -1,6 +1,6 @@
 ## Instructions
 
-1. Download the CelebA dataset from here: TODO.
+1. Download the CelebA dataset from here: [img_align_celeba.zip](https://drive.google.com/file/d/0B7EVK8r0v71pZjFTYXZWM3FlRnM/view?usp=sharing).
    Extract these images into the folder: 'CelebA/images'
 2. Download these [files](https://mega.nz/#!kLZzXKgT!DZKWca3rERDYQfQ7KTcdMW1yqtoNaO6M5tylY39cVI8) and extract them in this directory
    such that you have the folders 'keypoints' and 'depth_anaff_frontal'.
