@@ -24,7 +24,7 @@ If you are having issues with running the code, please do not hesitate to submit
 ## [DepthNets](depthnet-pytorch)
 
 <p align="left">
-  <img src="depthnet-pytorch/figures/DepthNet_only_kpts.jpg" width="500"/>
+  <img src="depthnet-pytorch/figures/DepthNet_only_kpts_pseudo_inverse.jpg" width="500"/>
 </p>
 
 This contains code to run DepthNet, and in particular section 3.2 of the paper ("Evaluation on unpaired faces and comparison to other models").
