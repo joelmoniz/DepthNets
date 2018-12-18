@@ -4,6 +4,10 @@ project(FaceWarperServer)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if (UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+endif (UNIX)
+
 include_directories(source)
 file(GLOB SOURCES "source/*.cpp" "source/*.h")
 add_executable(FaceWarperServer ${SOURCES})
